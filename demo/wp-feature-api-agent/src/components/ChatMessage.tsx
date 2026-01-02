@@ -102,6 +102,9 @@ export const AssistantMessage = ( { message }: { message: Message } ) => {
  */
 export const PendingAssistantMessage = () => (
 	<div className="demo-chat-message demo-chat-message-assistant demo-chat-message-pending">
-		<Spinner />
+		<Spinner
+			onPointerEnterCapture={ undefined }
+			onPointerLeaveCapture={ undefined }
+		/>
 	</div>
 );
