@@ -31,6 +31,9 @@ export interface ConversationContextType {
 	isLoading: boolean;
 	clearConversation: () => void;
 	toolNameMap: Record< string, string >;
+	models: Array< { id: string; owned_by?: string; raw?: any } >;
+	selectedModel: string | null;
+	setSelectedModel: ( modelId: string ) => void;
 }
 
 export const ConversationContext =
@@ -72,6 +75,8 @@ export const ConversationProvider = ( {
 	const [ toolNameMap, setToolNameMap ] = useState<
 		Record< string, string >
 	>( {} );
+	const [ models, setModels ] = useState< Array< { id: string; owned_by?: string; raw?: any } > >( [] );
+	const [ selectedModel, setSelectedModel ] = useState< string | null >( null );
 	const isInitializing = useRef( false );
 
 	useEffect( () => {
@@ -108,6 +113,32 @@ export const ConversationProvider = ( {
 		};
 
 		initializeExecutor();
+
+		// Fetch available models from the proxy
+		(async () => {
+			try {
+				const apiFetch = ( window as any ).wp?.apiFetch;
+				if ( ! apiFetch ) {
+					return;
+				}
+				const resp = await apiFetch( { path: '/wp/v2/ai-api-proxy/v1/models' } );
+				const data = resp?.data ?? resp;
+				if ( Array.isArray( data ) ) {
+					const parsed = data.map( ( m: any, i: number ) => ( {
+						id: m.id ?? m.model ?? m.name ?? String( i ),
+						owned_by: m.owned_by,
+						raw: m,
+					} ) );
+					setModels( parsed );
+					if ( parsed.length > 0 ) {
+						setSelectedModel( parsed[0].id );
+					}
+				}
+			} catch ( e ) {
+				// eslint-disable-next-line no-console
+				console.error( 'Failed to fetch model list:', e );
+			}
+		})();
 	}, [] );
 
 	const agent: Agent | null = useMemo( () => {
@@ -123,8 +154,8 @@ export const ConversationProvider = ( {
 				return;
 			}
 
-			// TODO: Consider making this a setting.
-			const defaultModel = 'gpt-4o';
+			// Use selectedModel if available, otherwise fallback to a sensible default.
+			const defaultModel = selectedModel ?? 'gpt-4o';
 
 			setIsLoading( true );
 
@@ -186,6 +217,9 @@ export const ConversationProvider = ( {
 			isLoading,
 			clearConversation,
 			toolNameMap,
+			models,
+			selectedModel,
+			setSelectedModel,
 		} ),
 		[
 			messages,
@@ -194,6 +228,9 @@ export const ConversationProvider = ( {
 			isLoading,
 			clearConversation,
 			toolNameMap,
+			models,
+			selectedModel,
+			setSelectedModel,
 		]
 	);
 

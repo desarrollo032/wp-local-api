@@ -20,12 +20,17 @@ class WP_AI_API_Proxy {
 	/**
 	 * Supported AI API service providers.
 	 */
-	private const SUPPORTED_AI_API_SERVICES = [ 'openai' ];
+	private const SUPPORTED_AI_API_SERVICES = [ 'openai', 'openrouter' ];
 
 	/**
 	 * Base URL for the OpenAI API.
 	 */
 	private const OPENAI_API_ROOT = 'https://api.openai.com/v1/';
+
+	/**
+	 * Default base URL for OpenRouter API (can be overridden in options).
+	 */
+	private const OPENROUTER_API_ROOT = 'https://openrouter.ai/v1/';
 
 	/**
 	 * Cache namespace for AI proxy data.
@@ -124,9 +129,18 @@ class WP_AI_API_Proxy {
 	 * @return WP_REST_Response Response object.
 	 */
 	public function ai_api_healthcheck( WP_REST_Request $request ) {
-		$openai_key = WP_AI_API_Options::get_openai_api_key();
+		$provider = WP_AI_API_Options::get_provider();
 
-		$all_defined = ! empty( $openai_key );
+		$all_defined = false;
+		switch ( $provider ) {
+			case 'openrouter':
+				$all_defined = ! empty( WP_AI_API_Options::get_openrouter_api_key() );
+				break;
+			case 'openai':
+			default:
+				$all_defined = ! empty( WP_AI_API_Options::get_openai_api_key() );
+				break;
+		}
 
 		$status = $all_defined ? 'OK' : 'Configuration Error';
 		$code   = $all_defined ? 200 : 500;
@@ -141,15 +155,16 @@ class WP_AI_API_Proxy {
 	 * @return WP_Error|WP_REST_Response Model list data or error.
 	 */
 	public function list_available_models( WP_REST_Request $request ) {
-		$openai_models = $this->get_provider_model_list( 'openai' );
-
 		$all_models = [];
 
-		if ( is_array( $openai_models ) ) {
-			foreach ( $openai_models as $model ) {
-				if ( is_object( $model ) ) {
-					$model->owned_by = 'openai';
-					$all_models[]    = $model;
+		foreach ( self::SUPPORTED_AI_API_SERVICES as $provider ) {
+			$models = $this->get_provider_model_list( $provider );
+			if ( is_array( $models ) ) {
+				foreach ( $models as $model ) {
+					if ( is_object( $model ) ) {
+						$model->owned_by = $provider;
+						$all_models[]    = $model;
+					}
 				}
 			}
 		}
@@ -183,10 +198,23 @@ class WP_AI_API_Proxy {
 		$body     = $request->get_body();
 		$headers  = $request->get_headers();
 
-		// Set OpenAI as the target service
-		$target_service = 'openai';
-		$target_url     = self::OPENAI_API_ROOT . $api_path;
-		$auth_header    = sprintf( 'Bearer %s', WP_AI_API_Options::get_openai_api_key() );
+		// Choose provider based on options
+		$target_service = WP_AI_API_Options::get_provider();
+		switch ( $target_service ) {
+			case 'openrouter':
+				$host = WP_AI_API_Options::get_openrouter_api_host();
+				if ( empty( $host ) ) {
+					$host = self::OPENROUTER_API_ROOT;
+				}
+				$target_url  = rtrim( $host, '/' ) . '/' . ltrim( $api_path, '/' );
+				$auth_header = sprintf( 'Bearer %s', WP_AI_API_Options::get_openrouter_api_key() );
+				break;
+			case 'openai':
+			default:
+				$target_url  = self::OPENAI_API_ROOT . $api_path;
+				$auth_header = sprintf( 'Bearer %s', WP_AI_API_Options::get_openai_api_key() );
+				break;
+		}
 
 		$outgoing_headers = array(
 			'Content-Type' => $headers['content_type'][0] ?? ( ! empty( $body ) ? 'application/json' : null ),
@@ -268,7 +296,11 @@ class WP_AI_API_Proxy {
 
 		$api_key = '';
 		switch ( $provider ) {
+			case 'openrouter':
+				$api_key = WP_AI_API_Options::get_openrouter_api_key();
+				break;
 			case 'openai':
+			default:
 				$api_key = WP_AI_API_Options::get_openai_api_key();
 				break;
 		}
@@ -288,7 +320,19 @@ class WP_AI_API_Proxy {
 		$api_path = '';
 
 		switch ( $provider ) {
+			case 'openrouter':
+				$headers = [
+					'Authorization' => sprintf( 'Bearer %s', WP_AI_API_Options::get_openrouter_api_key() ),
+					'User-Agent'    => 'WordPress AI API Proxy/' . WP_AI_API_PROXY_VERSION,
+				];
+				$host = WP_AI_API_Options::get_openrouter_api_host();
+				if ( empty( $host ) ) {
+					$host = self::OPENROUTER_API_ROOT;
+				}
+				$api_path = rtrim( $host, '/' ) . '/models';
+				break;
 			case 'openai':
+			default:
 				$headers = [
 					'Authorization' => sprintf( 'Bearer %s', WP_AI_API_Options::get_openai_api_key() ),
 					'User-Agent'    => 'WordPress AI API Proxy/' . WP_AI_API_PROXY_VERSION,
@@ -324,7 +368,7 @@ class WP_AI_API_Proxy {
 		}
 
 		$models_data = [];
-		if ( $provider === 'openai' && isset( $json_data->data ) && is_array( $json_data->data ) ) {
+		if ( isset( $json_data->data ) && is_array( $json_data->data ) ) {
 			$models_data = $json_data->data;
 		} else {
 			return [];

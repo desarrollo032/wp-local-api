@@ -1,0 +1,127 @@
+name: Release plugin
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Detect plugin main file, slug and version
+        id: detect
+        run: |
+          set -euo pipefail
+          # Find the PHP file in repo root that contains a plugin header
+          PLUGIN_FILE=$(grep -lR --exclude-dir=.github --exclude-dir=node_modules -m1 "Plugin Name:" -- *.php || true)
+          if [ -z "$PLUGIN_FILE" ]; then
+            echo "No plugin main file found in repo root. Aborting." >&2
+            exit 1
+          fi
+          echo "Found plugin file: $PLUGIN_FILE"
+          PLUGIN_SLUG=$(basename "$PLUGIN_FILE" .php)
+          echo "PLUGIN_FILE=$PLUGIN_FILE" >> $GITHUB_ENV
+          echo "PLUGIN_SLUG=$PLUGIN_SLUG" >> $GITHUB_ENV
+          # Extract Version: header (case-insensitive)
+          VERSION=$(sed -n 's/^[[:space:]]*Version:[[:space:]]*//Ip' "$PLUGIN_FILE" | head -n1 | tr -d '[:space:]')
+          if [ -z "$VERSION" ]; then
+            echo "No Version header found in $PLUGIN_FILE. Aborting." >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version $VERSION and slug $PLUGIN_SLUG"
+
+      - name: Create Git tag if missing
+        id: tag
+        run: |
+          set -euo pipefail
+          TAG=v${{ env.VERSION }}
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists, skipping tag creation."
+            echo "tag_created=false" >> $GITHUB_OUTPUT
+          else
+            # Push tag using GITHUB_TOKEN auth
+            git tag -a "$TAG" -m "Release $TAG"
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+            git push origin "$TAG"
+            echo "tag_created=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare ZIP package
+        id: package
+        run: |
+          set -euo pipefail
+          SLUG=${{ env.PLUGIN_SLUG }}
+          ARCHIVE="${SLUG}.zip"
+          # Create a release directory for artifacts
+          mkdir -p release
+          # Create zip excluding .git, .github, node_modules and common dev files
+          zip -r "$ARCHIVE" . \
+            -x "./.git/*" "./.github/*" "./node_modules/*" "**/node_modules/*" \
+            "*.zip" "*.tar.gz" "*.tgz" "release/*" \
+            "*.md" "docs/*" "tests/*" "phpunit.xml*" \
+            "*.yml" "*.yaml" \
+            "package-lock.json" "yarn.lock" \
+            ".vscode/*" "*.log"  
+          mv "$ARCHIVE" release/
+          echo "asset_path=release/$ARCHIVE" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          # Find previous tag (if any)
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          if [ "$RANGE" = "HEAD" ]; then
+            git log --pretty=format:"- %s (%an)" > release/changelog.txt
+          else
+            git log $RANGE --pretty=format:"- %s (%an)" > release/changelog.txt
+          fi
+          # Ensure safe set-output encoding
+          BODY=$(sed ':a;N;$!ba;s/%/%%/g' release/changelog.txt)
+          echo "body<<EOF" >> $GITHUB_ENV
+          cat release/changelog.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "changelog_path=release/changelog.txt" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: ${{ env.VERSION }}
+          body: ${{ env.BODY }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.package.outputs.asset_path }}
+          asset_name: ${{ env.PLUGIN_SLUG }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

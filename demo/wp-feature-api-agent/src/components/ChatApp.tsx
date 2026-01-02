@@ -3,6 +3,7 @@
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
 import { Button, TextareaControl, Icon } from '@wordpress/components';
+import { SelectControl } from '@wordpress/components';
 import { arrowRight, trash, chevronDown, chevronUp } from '@wordpress/icons';
 
 /**
@@ -16,8 +17,7 @@ import {
 } from './ChatMessage';
 
 export const ChatApp = () => {
-	const { messages, sendMessage, isLoading, clearConversation } =
-		useConversation();
+	const { messages, sendMessage, isLoading, clearConversation, models, selectedModel, setSelectedModel } = useConversation();
 	const [ input, setInput ] = useState( '' );
 	const [ isMinimized, setIsMinimized ] = useState( false );
 	const messagesEndRef = useRef< HTMLDivElement | null >( null );
@@ -52,6 +52,15 @@ export const ChatApp = () => {
 		<div className={ `chat-container${ isMinimized ? ' minimized' : '' }` }>
 			<div className="chat-header">
 				<h2>AI Agent</h2>
+				{ models && models.length > 0 && (
+					<div style={ { marginLeft: '12px', minWidth: '200px' } }>
+						<SelectControl
+							value={ selectedModel ?? '' }
+							onChange={ ( val ) => setSelectedModel( val ) }
+							options={ models.map( ( m ) => ( { label: `${ m.id } (${ m.owned_by ?? '' })`, value: m.id } ) ) }
+						/>
+					</div>
+				) }
 				<div className="chat-header-actions">
 					<Button
 						onClick={ clearConversation }
