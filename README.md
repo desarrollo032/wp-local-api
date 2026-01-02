@@ -1,120 +1,171 @@
-This repository will be deprecated as the [Abilities API](https://github.com/WordPress/abilities-api) AI Building Block for WordPress continues releasing stable versions, and becomes a core API in WordPress 6.9.
+# API de Funcionalidades de WordPress
 
-We encourage all users to migrate to Abilities API. Future work, including new features and fixes, will happen there. This repository will remain available in archived form for historical reference.
+> ⚠️ **Este repositorio será reemplazado** por la [API de Funcionalidades](https://github.com/WordPress/abilities-api) a medida que se lancen versiones estables y se convierta en una API central de WordPress 6.9.
 
-# WordPress Feature API
+[![Versión](https://img.shields.io/badge/Version-0.1.8-blue)](https://github.com/Automattic/wordpress-feature-api)
+[![GPLv2 License](https://img.shields.io/badge/License-GPL%20v2-green)](LICENSE)
+[![WordPress](https://img.shields.io/badge/WordPress-6.9+-blueviolet)](https://wordpress.org/)
 
-The WordPress Feature API is a system for exposing WordPress functionality in a standardized, discoverable way for both server and client-side use. It's designed to make WordPress functionality accessible to AI systems (particularly LLMs) and developers through a unified registry of resources and tools.
+---
 
-## Key Features
+## Descripción
 
-- **Unified Registry**: Central registry of features accessible from both client and server
-- **Standardized Format**: uses the MCP specification for the registry
-- **Reuses existing functionality**: existing WordPress functionality like REST endpoints are reused as features, making them more discoverable and easier to use by LLMs
-- **Filterable**: Features can be filtered, categorized, and searched for more accurate feature matching
-- **Extensible**: Easy to register new features from plugins and themes
+La **API de Funcionalidades de WordPress** es un sistema para exponer la funcionalidad de WordPress de una manera estandarizada y detectable, tanto para uso del lado del servidor como del cliente. Está diseñado para hacer que la funcionalidad de WordPress sea accesible para sistemas de IA (particularmente LLMs) y desarrolladores a través de un registro unificado de recursos y herramientas.
 
-## Project Structure
+El sistema permite que WordPress ejecute funcionalidades por sí mismo tanto en el backend como en el frontend, proporcionando una primitiva API genérica para funcionalidad genérica.
 
-This project is structured as a monorepo using npm workspaces:
+---
 
-- **`packages/client`**: The core client-side SDK (`@automattic/wp-feature-api`). Provides the API (`registerFeature`, `executeFeature`, `Feature` type) for interacting with the feature registry on the frontend and manages the underlying data store. Third-party plugins can use this to register their own client-side features.
-- **`packages/client-features`**: A library containing implementations of standard client-side features (e.g., block insertion, navigation). It depends on the client SDK and is used by the main plugin to register the core features for WordPress.
-- **`demo/wp-feature-api-agent`**: A demo WordPress plugin showcasing how to use the Feature API, including registering features, and implementing WP Features as tools in a Typescript based AI Agent.
-- **`src/`**: Contains the main JavaScript entry point (`src/index.js`) for the core WordPress plugin. This script initializes the client SDK and registers the core client features when the plugin is active.
-- **`wp-feature-api.php`** & **`includes/`**: Contains the core PHP logic for the Feature API, including the registry, REST API endpoints, and server-side feature definitions. This is exported as a Composer package for use in other plugins.
+## ✨ Características Principales
 
-## MCP
+| Característica | Descripción |
+|----------------|-------------|
+| 🔄 **Registro Unificado** | Registro centralizado de funcionalidades accesible desde cliente y servidor |
+| 📋 **Formato Estandarizado** | Utiliza la especificación MCP para el registro de funcionalidades |
+| ♻️ **Reutiliza Funcionalidad Existente** | Las funcionalidades de WordPress existentes como endpoints REST son reutilizadas, haciéndolas más detectables y fáciles de usar por LLMs |
+| 🔍 **Filtrable** | Las funcionalidades pueden filtrarse, categorizarse y buscarse para una coincidencia más precisa |
+| 🧩 **Extensible** | Fácil de registrar nuevas funcionalidades desde plugins y temas |
 
-It relies heavily on the [MCP Specification](https://spec.modelcontextprotocol.io/specification/2025-03-26/), however it's tailored to the needs of WordPress. Since WordPress is by nature both the server and the client, the Feature API is designed to be used in both contexts, and leverage existing WordPress functionality.
+---
 
-Features may surface in an actual WP MCP server consumed by an external MCP client. The main difference is that the features are compatible across the server and client, allowing for WordPress to execute features itself on both the backend and frontend.
+## 📁 Estructura del Proyecto
 
-Note, this does not implement the MCP server and transport layer. However, the feature registry may be used by an MCP server like Automattic's [wordpress-mcp](https://github.com/Automattic/wordpress-mcp) plugin.
+Este proyecto está estructurado como un monorepo usando espacios de trabajo npm:
 
-Features are not limited to LLM consumption and can be used throughout WordPress directly as a primitive API for generic functionality. Hence the more generic name of "Feature API" instead of "MCP API".
+| Directorio/Paquete | Descripción |
+|--------------------|-------------|
+| `packages/client` | SDK del lado del cliente (`@automattic/wp-feature-api`). Proporciona la API (`registerFeature`, `executeFeature`, `Feature`) para interactuar con el registro de funcionalidades en el frontend |
+| `packages/client-features` | Biblioteca que contiene implementaciones de funcionalidades estándar del lado del cliente (ej. inserción de bloques, navegación) |
+| `demo/wp-feature-api-agent` | Plugin demo de WordPress que muestra cómo usar la API de Funcionalidades, incluyendo registro de funcionalidades e implementación como herramientas en un Agente de IA |
+| `src/` | Punto de entrada principal de JavaScript (`src/index.js`) para el plugin principal de WordPress |
+| `wp-feature-api.php` & `includes/` | Lógica PHP central para la API de Funcionalidades, incluyendo el registro, endpoints REST y definiciones de funcionalidades del servidor |
 
-## Filtering
+```
+wp-feature-api/
+├── packages/
+│   ├── client/              # SDK del cliente
+│   └── client-features/     # Funcionalidades del cliente
+├── demo/
+│   └── wp-feature-api-agent/ # Plugin demo
+├── src/                      # JavaScript del plugin
+├── includes/                 # PHP del plugin
+└── wp-feature-api.php       # Archivo principal del plugin
+```
 
-An important aspect of the Feature API is its ability to filter features manually and automatically. Since the success of an LLM agent will depend on the quality of tools that match the user's intent or current context within WordPress, the Feature API provides several mechanisms to ensure that the right tools are available at the right time.
+---
 
-Filtering can be done by:
+## 🔗 MCP
 
-- Querying feature properties
-- Keyword search across name, description, and ID.
-- Categories
-- `is_eligible` boolean callback
-- Context matching for when we already have some context and want Features that can be fulfilled using that context.
+Este sistema se basa fuertemente en la [Especificación MCP](https://spec.modelcontextprotocol.io/specification/2025-03-26/), aunque está adaptado a las necesidades de WordPress. Dado que WordPress es por naturaleza tanto el servidor como el cliente, la API de Funcionalidades está diseñada para usarse en ambos contextos y aprovechar la funcionalidad existente de WordPress.
 
-## Getting Started
+Las funcionalidades pueden aparecer en un servidor MCP real consumido por un cliente MCP externo. La principal diferencia es que las funcionalidades son compatibles entre el servidor y el cliente, permitiendo que WordPress ejecute funcionalidades por sí mismo tanto en el backend como en el frontend.
 
-### Development
+> **Nota:** Esto no implementa el servidor MCP ni la capa de transporte. Sin embargo, el registro de funcionalidades puede ser usado por un servidor MCP como el plugin [wordpress-mcp](https://github.com/Automattic/wordpress-mcp) de Automattic.
 
-#### Installation
+Las funcionalidades no están limitadas al consumo por LLMs y pueden usarse en todo WordPress directamente como una primitiva API para funcionalidad genérica. De ahí el nombre más genérico de "API de Funcionalidades" en lugar de "API de MCP".
 
-1. Clone the repository.
-2. Run `npm run setup` to install all dependencies (both PHP and JavaScript).
+---
 
-#### Building
+## 🔎 Filtrado
 
-Run `npm run build` from the root directory. This command will build all the JavaScript packages (`client`, `client-features`, `demo`) and the main plugin script (`src/index.js`).
+Un aspecto importante de la API de Funcionalidades es su capacidad para filtrar funcionalidades manualmente y automáticamente. Dado que el éxito de un agente LLM dependerá de la calidad de las herramientas que coincidan con la intención del usuario o el contexto actual dentro de WordPress, la API de Funcionalidades proporciona varios mecanismos para asegurar que las herramientas correctas estén disponibles en el momento correcto.
 
-### Using WordPress Feature API in Your Plugin via Composer
+El filtrado se puede realizar mediante:
 
-Plugin developers should include the WordPress Feature API in their plugins using Composer. The Feature API will automatically handle version conflicts when multiple plugins include it.
+| Método | Descripción |
+|--------|-------------|
+| **Consultar propiedades de funcionalidades** | Filtrar por atributos específicos como tipo, nombre, etc. |
+| **Búsqueda por palabras clave** | Buscar en nombre, descripción e ID |
+| **Categorías** | Agrupar y filtrar por categorías temáticas |
+| **Callback `is_eligible`** | Verificación programática de elegibilidad |
+| **Coincidencia de contexto** | Encontrar funcionalidades que pueden cumplirse usando el contexto disponible |
 
-#### 1. Add as a Composer dependency
+---
 
-Manually adding to your `composer.json` file:
+## 🚀 Primeros Pasos
+
+### Desarrollo
+
+#### Instalación
+
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/Automattic/wordpress-feature-api.git
+   cd wordpress-feature-api
+   ```
+
+2. Ejecutar `npm run setup` para instalar todas las dependencias (tanto PHP como JavaScript):
+   ```bash
+   npm run setup
+   ```
+
+#### Construcción
+
+Ejecutar `npm run build` desde el directorio raíz. Este comando construirá todos los paquetes de JavaScript (`client`, `client-features`, `demo`) y el script principal del plugin (`src/index.js`):
+
+```bash
+npm run build
+```
+
+---
+
+## 📦 Usar la API de Funcionalidades en tu Plugin via Composer
+
+Los desarrolladores de plugins deben incluir la API de Funcionalidades de WordPress en sus plugins usando Composer. La API de Funcionalidades manejará automáticamente los conflictos de versiones cuando múltiples plugins la incluyan.
+
+#### 1. Añadir como dependencia de Composer
+
+Añadir manualmente a tu archivo `composer.json`:
 
 ```json
 {
   "require": {
-    "automattic/wp-feature-api": "^0.1.8" // Make sure to use the latest version
+    "automattic/wp-feature-api": "^0.1.8"
   }
 }
 ```
 
-If using the `composer` command in the terminal:
+O usando el comando `composer` en la terminal:
 
 ```bash
 composer require automattic/wp-feature-api:"^0.1.8"
 ```
 
-#### 2. Load the Feature API in your plugin
+#### 2. Cargar la API de Funcionalidades en tu plugin
 
-To safely load the Feature API:
+Para cargar la API de Funcionalidades de forma segura:
 
 ```php
-// Plugin bootstrap code
-function my_plugin_init() {
-    // Just include the main plugin file - it automatically registers itself with the version manager
+<?php
+// Código de inicio del plugin
+function mi_plugin_iniciar() {
+    // Solo incluye el archivo principal del plugin - se registra automáticamente con el gestor de versiones
     require_once __DIR__ . '/vendor/automattic/wp-feature-api/wp-feature-api.php';
 
-    // Register our features once we know API is initialized
-    add_action( 'wp_feature_api_init', 'my_plugin_register_features' );
+    // Registrar nuestras funcionalidades una vez que sepamos que la API está inicializada
+    add_action( 'wp_feature_api_init', 'mi_plugin_registrar_funcionalidades' );
 }
 
-// hook into plugins_loaded - the Feature API will resolve which version to use
-add_action( 'plugins_loaded', 'my_plugin_init' );
+// Conectar a plugins_loaded - La API de Funcionalidades resolverá qué versión usar
+add_action( 'plugins_loaded', 'mi_plugin_iniciar' );
 
 /**
- * Register features provided by this plugin
+ * Registrar funcionalidades proporcionadas por este plugin
  */
-function my_plugin_register_features() {
-    // Register your features here
+function mi_plugin_registrar_funcionalidades() {
+    // Registra tus funcionalidades aquí
     wp_register_feature( array(
-        'id' = 'my-plugin/example-feature',
-        'name' => 'Example Feature',
-        'description' => 'An example feature from my plugin',
-        'callback' => 'my_plugin_example_feature_callback',
+        'id' => 'mi-plugin/ejemplo-funcionalidad',
+        'name' => 'Ejemplo de Funcionalidad',
+        'description' => 'Una funcionalidad de ejemplo de mi plugin',
+        'callback' => 'mi_plugin_ejemplo_funcionalidad_callback',
         'type' => 'tool',
         'input_schema' => array(
             'type' => 'object',
             'properties' => array(
-                'example_param' => array(
+                'parametro_ejemplo' => array(
                     'type' => 'string',
-                    'description' => 'An example parameter',
+                    'description' => 'Un parámetro de ejemplo',
                 ),
             ),
         ),
@@ -122,16 +173,40 @@ function my_plugin_register_features() {
 }
 ```
 
-### Running the Demo
+---
 
-1. Ensure dependencies are installed and code is built (see above).
-2. Use `@wordpress/env` (or your preferred local WordPress environment such as Studio) to start WordPress. You can use `npm run wp-env start` from the root directory.
-3. Activate the "WordPress Feature API" plugin.
-4. The demo plugin (`wp-feature-api-agent`) should load automatically (controlled by the `WP_FEATURE_API_LOAD_DEMO` constant in `wp-feature-api.php`). You should see an admin notice confirming this.
-5. Navigate to the "WP Feature Agent Demo" page added under the Settings menu in the WordPress admin to configure your OpenAI API key.
-6. Refresh and see the AI Agent chat interface.
-7. Ask the AI Agent questions about your WordPress site and features. It has access to both server-side and client-side features.
+## 💡 Ejecutar la Demo
 
-## Contributing
+1. Asegúrate de que las dependencias estén instaladas y el código esté construido (ver arriba).
+2. Usa `@wordpress-env` (o tu entorno local de WordPress preferido como Studio) para iniciar WordPress:
+   ```bash
+   npm run wp-env start
+   ```
+3. Activa el plugin "WordPress Feature API".
+4. El plugin demo (`wp-feature-api-agent`) debería cargarse automáticamente (controlado por la constante `WP_FEATURE_API_LOAD_DEMO` en `wp-feature-api.php`). Deberías ver un aviso de administrador confirmando esto.
+5. Navega a la página "WP Feature Agent Demo" añadida bajo el menú de Configuración en el administrador de WordPress para configurar tu clave de API de OpenAI.
+6. Actualiza y verás la interfaz de chat del Agente de IA.
+7. Haz preguntas al Agente de IA sobre tu sitio de WordPress y funcionalidades. Tiene acceso tanto a funcionalidades del lado del servidor como del cliente.
 
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+---
+
+## 🤝 Contribuir
+
+¡Bienvenidas las contribuciones! Por favor, consulta nuestro [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre cómo contribuir a este proyecto.
+
+---
+
+## 📚 Recursos Adicionales
+
+| Recurso | Enlace |
+|---------|--------|
+| Repositorio en GitHub | [wordpress-feature-api](https://github.com/Automattic/wordpress-feature-api) |
+| Paquete NPM | [@automattic/wp-feature-api](https://www.npmjs.com/package/@automattic/wp-feature-api) |
+| Packagist | [automattic/wp-feature-api](https://packagist.org/packages/automattic/wp-feature-api) |
+| Plugin MCP | [wordpress-mcp](https://github.com/Automattic/wordpress-mcp) |
+| Documentación en Español | [/docs/README.md](/docs/README.md) |
+
+---
+
+⭐ *Si este proyecto te es útil, considera darle una estrella en GitHub!*
+

@@ -1,45 +1,73 @@
-# RFC: WordPress Feature API
+# RFC: API de Funcionalidades de WordPress
 
-## Summary
+> **Resumen de la Propuesta:** La API de Funcionalidades de WordPress es un sistema propuesto para exponer funcionalidad del lado del servidor y del cliente en WordPress para uso en, pero no exclusivo de, LLMs con el fin de mejorar los sistemas de WordPress agénticos.
 
-The WordPress Feature API is a proposed system for exposing server and client side functionality in WordPress for use in, but not exclusive to, LLMs in order to enhance agentic WordPress systems. It's focused on discoverability and execution across server and client. At its core, it is a very accessible registry of defined WordPress features in the form of resources and tools. We propose leveraging the existing WP REST API to power the functionality underneath the Feature API and providing a javascript `wp.features` module for client-side use.
+---
 
-### What this is NOT
+## 📝 Resumen
 
-This is not an attempt at introducing AI features and LLMs into WordPress. That's a separate discussion, albeit a good and needed one. However, the intended consumer of the Feature API **is** LLMs and agentic systems that will be built in WordPress. As such, it's not exclusive to being used by LLMs, and offers a standard and distributed way of exposing WP functionality throughout WordPress.
+La **API de Funcionalidades de WordPress** es un sistema propuesto para exponer funcionalidad del lado del servidor y del cliente en WordPress para uso en, pero no exclusivo de, LLMs con el fin de mejorar los sistemas agénticos de WordPress. Se centra en la detectabilidad y ejecución tanto en el servidor como en el cliente. En su núcleo, es un registro muy accesible de funcionalidades definidas de WordPress en forma de recursos y herramientas.
 
-### Problem
+Proponemos aprovechar la API WP REST existente para potenciar la funcionalidad subyacente de la API de Funcionalidades y proporcionar un módulo JavaScript `wp.features` para uso del lado del cliente.
 
-LLMs lack a formal way of interacting with WordPress, whether they're called from the client or server. This problem has been addressed by emerging standards like [MCP](https://modelcontextprotocol.io/) that make client LLM-powered software aware of external resources and tools. In WordPress's case, we have end-to-end control of the server and client and therefore this is a means for making it easier to expose WP functionality across it, inspired by MCP concepts in order to align with the larger AI ecosystem.
+---
 
-There's a lot of potential in shared features for WordPress that's pretty simple and easy to implement itself:
+## ❌ Lo Que NO Es
 
--   Update site options
--   Customize styles
--   Search posts
--   Update a post
--   etc.
+Esto **no** es un intento de introducir características de IA y LLMs en WordPress. Eso es una discusión separada, aunque buena y necesaria. Sin embargo, el consumidor previsto de la API de Funcionalidades **sí** son los LLMs y sistemas agénticos que se construirán en WordPress. Como tal, no está restringido solo para uso por LLMs, y ofrece una forma estándar y distribuida de exponer la funcionalidad de WP en todo WordPress.
 
-The list is endless. But they are all easy to define features and useful across WordPress users, AI being one of them. Given some key properties, like descriptions and structured schema to describe the feature, AI is quite capable of using them just like a human developer in WordPress would. This raises two main questions this RFC aims to address:
+---
 
-1. How do we make features discoverable, across the client and server?
-2. How do we make features executable, across the client and server?
-3. And for extra credit, how do we make this as easy as possible for developers to use?
+## ⚠️ Problema
 
-## Core Features
+Los LLMs carecen de una forma formal de interactuar con WordPress, ya sea que se llamen desde el cliente o el servidor. Este problema ha sido abordado por estándares emergentes como [MCP](https://modelcontextprotocol.io/) que hacen que el software potenciado por LLM del cliente sea consciente de recursos y herramientas externos.
 
--   A central registry of features that can be accessed by the client and server, but consolidated under a single API.
--   Easy to register features anywhere in WordPress
--   Scopable and filterable in order to focus on the most relevant features to the specific LLM call.
--   Features can be composed to create more complex workflows
+En el caso de WordPress, tenemos control de extremo a extremo del servidor y el cliente, por lo tanto, esto es un medio para facilitar la exposición de la funcionalidad de WP a través de él, inspirado en conceptos de MCP para alinearse con el ecosistema de IA más amplio.
 
-## Use Cases
+Hay mucho potencial en funcionalidades compartidas para WordPress que son bastante simples y fáciles de implementar:
 
-Let's walk through some common use cases to address how we can use Feature API to solve them. Since we're agnostic to how we call an LLM, I'll use `vercel/ai` as an example for the client, and a hypothetical `ai()` server-side AI SDK.
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| 🔧 Actualizar opciones del sitio | Modificar configuraciones globales |
+| 🎨 Personalizar estilos | Cambiar la apariencia del tema |
+| 🔍 Buscar entradas | Consultar contenido del sitio |
+| ✏️ Actualizar una entrada | Modificar contenido existente |
+| ... | Y muchas más |
 
-### Client-Side LLMs
+La lista es interminable. Pero todas son fáciles de definir y útiles para los usuarios de WordPress, siendo la IA uno de ellos. Dadas algunas propiedades clave, como descripciones y esquemas estructurados para describir la funcionalidad, la IA es bastante capaz de usarlas al igual que lo haría un desarrollador humano en WordPress.
 
-Imagine an AI model operating in WordPress:
+### Preguntas Clave
+
+Esto plantea tres preguntas principales que este RFC pretende abordar:
+
+| # | Pregunta | Descripción |
+|---|----------|-------------|
+| 1 | **Detectabilidad** | ¿Cómo hacemos que las funcionalidades sean detectables en el cliente y servidor? |
+| 2 | **Ejecución** | ¿Cómo hacemos que las funcionalidades sean ejecutables en el cliente y servidor? |
+| 3 | **Facilidad de uso** | ¿Cómo hacemos esto lo más fácil posible para los desarrolladores? |
+
+---
+
+## ✨ Características Principales
+
+| Característica | Descripción |
+|----------------|-------------|
+| 🔄 **Registro Centralizado** | Registro centralizado de funcionalidades accesible por cliente y servidor, consolidado bajo una única API |
+| 🧩 **Registro Fácil** | Fácil de registrar funcionalidades en cualquier lugar de WordPress |
+| 🎯 **Scoped y Filtrable** | Delimitables y filtrables para enfocarse en las funcionalidades más relevantes para la llamada específica del LLM |
+| 🔗 **Composable** | Las funcionalidades pueden componerse para crear flujos de trabajo más complejos |
+
+---
+
+## 💡 Casos de Uso
+
+Veamos algunos casos de uso comunes para abordar cómo podemos usar la API de Funcionalidades para resolverlos. Dado que somos agnósticos a cómo llamamos a un LLM, usaré `vercel/ai` como ejemplo para el cliente, y un hipotético SDK de IA del lado del servidor `ai()`.
+
+---
+
+## 🤖 LLMs del Lado del Cliente
+
+Imagina un modelo de IA operando en WordPress:
 
 ```tsx
 import { generateText } from 'ai';
@@ -54,26 +82,28 @@ const { text } = await generateText( {
 } );
 ```
 
-How do we make this model aware of all the features of WordPress and have it use them?
+¿Cómo hacemos que este modelo sea consciente de todas las funcionalidades de WordPress y las use?
+
+### Registrar Funcionalidades
 
 ```tsx
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-// register features globally
+// Registrar funcionalidades globalmente
 wp.features.register( 'editor/go_to_post', {
-	type: 'tool', // or resource, borrowed from MCP
-	description: 'Navigates to a post when in the WordPress editor.',
+	type: 'tool', // o resource, prestado de MCP
+	description: 'Navega a una entrada cuando está en el editor de WordPress.',
 	input_schema: z.object( { postId: z.string() } ),
 	callback: async ( input ) => {
 		document.location.href = `post.php?post=${ input.postId }&action=edit`;
 	},
 } );
 
-// gets all features from the registry
+// Obtiene todas las funcionalidades del registro
 const features = wp.features.get();
 
-// Reformat our features as tools for the LLM
+// Reformatea nuestras funcionalidades como herramientas para el LLM
 const toolsFromFeatures = function ( features ) {
 	return features.map( ( { id, name, description, input_schema } ) => ( {
 		id,
@@ -94,21 +124,34 @@ const { text } = await generateText( {
 } );
 ```
 
-You see that we're borrowing the terminology from MCP for the `type` of feature. Tools are generally actionable and have effects, whereas resources are generally passive and are used to provide more context. Think of it as the difference between GET and POST requests.
+### Recursos vs Herramientas
 
-Resources are used to provide more context. Because of this, resources are often registered server-side, because they can expose data over the REST API.
+Como ves, estamos tomando prestado la terminología de MCP para el `type` de funcionalidad:
 
-Note that we'll need a post ID for the above example. We can ask the user, or we can provide another tool, provided through a Feature resource, that can be used to get the post ID.
+| Tipo | Comportamiento | Analogía |
+|------|----------------|----------|
+| **Herramienta (tool)** | Accionable, tiene efectos | Similar a POST requests |
+| **Recurso (resource)** | Pasivo, proporciona contexto | Similar a GET requests |
+
+Los recursos se usan para proporcionar más contexto. Por esta razón, los recursos a menudo se registran del lado del servidor, porque pueden exponer datos sobre la API REST.
+
+---
+
+## 🔍 Obtener ID de Entrada
+
+Necesitaremos un ID de entrada para el ejemplo anterior. Podemos preguntarle al usuario, o podemos proporcionar otra herramienta, proporcionada a través de un Recurso de Funcionalidad, que se puede usar para obtener el ID de entrada.
+
+### Registrar Recurso de Búsqueda
 
 ```php
 wp_register_feature('core/posts/search', [
-    'name' => 'Search Posts',
-    'description' => 'Searches for posts by title, content, or slug.',
+    'name' => 'Buscar Entradas',
+    'description' => 'Busca entradas por título, contenido o slug.',
     'type' => 'resource',
     'input_schema' => [
         'query' => [
           'type' => 'string',
-          'description' => 'A simple query to search for posts by title, content, or slug. The simpler and shorter the better, in order to have a hit.',
+          'description' => 'Una consulta simple para buscar entradas por título, contenido o slug. Cuanto más simple y corta sea, mejor para tener un acierto.',
         ],
     ],
     'output_schema' => [
@@ -124,14 +167,20 @@ wp_register_feature('core/posts/search', [
 ]);
 ```
 
-Now the AI should respond to the user asking which post and condense that into a simple query to search the posts feature resource, and pass this to the `editor/go_to_post` tool with the fetched post ID. We're relying on the OpenAI tools API to handle this logic, but we could implement a similar workflow manually ourselves using a "router" that chooses the tools needed to fulfill the user's request.
+Ahora la IA debería responder al usuario preguntando qué entrada y condensar eso en una consulta simple para buscar en el recurso de entradas, y pasarlo a la herramienta `editor/go_to_post` con el ID de entrada obtenido.
 
-Let's break down how we can call a feature directly. First, let's register some more specific plugin features, like WooCommerce:
+---
+
+## 🛒 Ejemplo con WooCommerce
+
+Veamos cómo registrar funcionalidades específicas de plugins, como WooCommerce:
+
+### Registrar Funcionalidades de Producto
 
 ```php
 wp_register_feature('woocommerce/product/report', [
-    'name' => 'WooCommerce Product Report',
-    'description' => 'Gets a WooCommerce product report by ID.',
+    'name' => 'Informe de Producto WooCommerce',
+    'description' => 'Obtiene un informe de producto de WooCommerce por ID.',
     'type' => 'resource',
     'input_schema' => [
         'productId' => ['type' => 'string'],
@@ -163,8 +212,8 @@ wp_register_feature('woocommerce/product/report', [
 ]);
 
 wp_register_feature('woocommerce/products', [
-    'name' => 'WooCommerce Products',
-    'description' => 'Gets a list of WooCommerce products.',
+    'name' => 'Productos WooCommerce',
+    'description' => 'Obtiene una lista de productos de WooCommerce.',
     'type' => 'resource',
     'output_schema' => [
         'products' => [
@@ -183,7 +232,9 @@ wp_register_feature('woocommerce/products', [
 ]);
 ```
 
-Now that we've registered this resource, the client can use it:
+### Usar la Funcionalidad desde el Cliente
+
+Ahora que hemos registrado este recurso, el cliente puede usarlo:
 
 ```tsx
 const feature = wp.features.find( 'woocommerce/product/report' );
@@ -191,24 +242,28 @@ const report = await feature.run(
 	{
 		productId: '123',
 	},
-	// options
+	// opciones
 	{
 		stream: false,
 	}
 );
 ```
 
-This calls the REST API endpoint that's been registered by the feature. The request parameters are validated against the input schema of the feature and the result is validated against the output schema before being returned as the response. Server-side features are shared with the client (over REST) and can be used in the same way as client-side features.
+Esto llama al endpoint de la API REST que ha sido registrado por la funcionalidad. Los parámetros de solicitud se validan contra el esquema de entrada de la funcionalidad y el resultado se valida contra el esquema de salida antes de ser devuelto como respuesta.
 
-Now the LLM can use this feature in a chat and we can start composing more complex AI workflows. Let's register a client feature for displaying a rich message to the user that renders a WooCommerce product report.
+---
+
+## 💬 Mensaje Enriquecido con IA
+
+Ahora podemos registrar una funcionalidad del cliente para mostrar un mensaje enriquecido al usuario que renderiza un informe de producto de WooCommerce.
 
 ```tsx
 wp.features.register( 'woocommerce/rich_message/report', {
 	id: 'woocommerce/rich_message/report',
-	name: 'WooCommerce Rich Message Report',
+	name: 'Informe de Mensaje Enriquecido WooCommerce',
 	type: 'tool',
 	description:
-		'Displays a rich message to the user that renders a WooCommerce product report.',
+		'Muestra un mensaje enriquecido al usuario que renderiza un informe de producto de WooCommerce.',
 	input_schema: z.object( {
 		userMessage: z.string(),
 		productId: z.string(),
@@ -239,7 +294,7 @@ async function generateRichMessageReport( context, feature ) {
 	);
 	const report = await productReportResource.run( { productId } );
 
-	// Use the LLM to generate a rich message that complies with this feature's output schema.
+	// Usar el LLM para generar un mensaje enriquecido que cumpla con el esquema de salida de esta funcionalidad
 	const { text } = await generateText( {
 		model: openai( 'gpt-4o' ),
 		prompt: `You are a friendly WordPress assistant! Generate a rich message to the user that renders a WooCommerce product report and a response to the user's message.
@@ -254,41 +309,29 @@ async function generateRichMessageReport( context, feature ) {
 }
 ```
 
-Now when the user asks to see a report for a product, the LLM can generate a rich message to the user that renders a WooCommerce product report.
+---
 
-```tsx
-const features = wp.features.get();
+## 🖥️ LLMs del Lado del Servidor
 
-const { text } = await generateText( {
-	model: openai( 'gpt-4o' ),
-	tools: toolsFromFeatures( features ),
-	system: "You are a friendly WordPress assistant! You've been provided a list of tools. If you need to use a tool with parameters, call a tool that can help you identify the parameters. For example, if you need to know the product ID, call the `woocommerce/products` tool.",
-	prompt: 'I want to see a report for product 123',
-} );
-```
+Hasta ahora hemos estado considerando IA del lado del cliente para demostrar cómo se pueden usar con funcionalidades del servidor y cliente. Sin embargo, en muchos casos querremos llamar a nuestra IA desde el servidor para no exponer demasiado en el cliente, como nuestras claves de API y prompts.
 
-### Server-Side LLMs
+Para hacer esto, podemos definir una funcionalidad impulsada por IA del lado del servidor como punto de entrada para ser llamada directamente desde el cliente.
 
-So far we've been considering client-side AI in order to demonstrate how they can be used with server and client features. However, in many cases we would want to call our AI from the server so that we don't expose too much on the client, like our provider API keys and prompts.
-
-To do this, we can define a server-side AI-driven feature as the entry-point to be called directly from the client.
-
-We call it from the client in exactly the same way:
+### Llamar desde el Cliente
 
 ```tsx
 const feature = wp.features.find( 'woocommerce/product/report' );
 const report = await feature.run( { productId: '123' } );
 ```
 
-But register everything as a server-side feature:
+### Registrar como Funcionalidad del Servidor
 
 ```php
 wp_register_feature("woocommerce/rich_message/report", [
-  "name" => "WooCommerce Rich Message Report",
-  "description" => "Displays a rich message to the user that renders a WooCommerce product report.",
+  "name" => "Informe de Mensaje Enriquecido WooCommerce",
+  "description" => "Muestra un mensaje enriquecido al usuario que renderiza un informe de producto de WooCommerce.",
   "type" => "tool",
   "input_schema" => array(
-    // this is WP Rest compatible schema
     "userMessage" => array(
       "type" => "string",
     ),
@@ -333,7 +376,7 @@ wp_register_feature("woocommerce/rich_message/report", [
     $report_resource = wp_get_feature("woocommerce/product/report", array('type' => 'resource'));
     $report = $report_resource->call($context);
 
-    // Hypothetical Prompt helper
+    // Ayudante de Prompt hipotético
     $prompt = Prompt::find('woocommerce/rich_message/report')->set_context([
       'userMessage' => $context['userMessage'],
       'productReport' => $report,
@@ -344,18 +387,22 @@ wp_register_feature("woocommerce/rich_message/report", [
 ]);
 ```
 
-## Feature Scope
+---
 
-We can imagine many features being registered and so always passing so many to our LLM would not be feasible. We need some good ways of filtering to the most relevant features for our needs. There's a few ways this can be handled:
+## 🎯 Alcance de Funcionalidades
 
-### Feature Categories
+Podemos imaginar que se registran muchas funcionalidades, por lo que siempre pasar tantas a nuestro LLM no sería factible. Necesitamos buenas formas de filtrar a las funcionalidades más relevantes para nuestras necesidades.
 
-When registering a feature, provide a category for it. This can then be specified for retrieval:
+---
+
+### 📁 Categorías de Funcionalidades
+
+Al registrar una funcionalidad, proporciona una categoría para ella. Esto puede especificarse para la recuperación:
 
 ```php
 wp_register_feature("woocommerce/product/report", [
-  "name" => "WooCommerce Product Report",
-  "description" => "Gets a WooCommerce product report by ID.",
+  "name" => "Informe de Producto WooCommerce",
+  "description" => "Obtiene un informe de producto de WooCommerce por ID.",
   "type" => "resource",
   "categories" => ["woocommerce", "reporting"],
 ]);
@@ -365,15 +412,17 @@ wp_register_feature("woocommerce/product/report", [
 const features = wp.features.get( { categories: [ 'woocommerce' ] } );
 ```
 
-### Filter
+---
 
-For situations where the feature availability is determined dynamically based on the request state, provide a callback that returns a boolean to filter the feature:
+### 🔍 Filtros
+
+Para situaciones donde la disponibilidad de la funcionalidad se determina dinámicamente según el estado de la solicitud, proporciona un callback que devuelve un booleano para filtrar la funcionalidad:
 
 ```php
 wp_register_feature("woocommerce/product/report", [
   "id" => "woocommerce/product/report",
-  "name" => "WooCommerce Product Report",
-  "description" => "Gets a WooCommerce product report by ID.",
+  "name" => "Informe de Producto WooCommerce",
+  "description" => "Obtiene un informe de producto de WooCommerce por ID.",
   "type" => "resource",
   "filter" => function (WP_Feature $_feature) {
     return is_woocommerce();
@@ -381,13 +430,13 @@ wp_register_feature("woocommerce/product/report", [
 ]);
 ```
 
-Or for the client, filter by client state:
+O para el cliente, filtrar por estado del cliente:
 
 ```tsx
 wp.features.register( 'core/blocks/edit_color', {
 	type: 'tool',
 	description:
-		'Edits the color of a block for either the background or text.',
+		'Edita el color de un bloque para el fondo o el texto.',
 	filter: () => {
 		const selectedBlockClientId =
 			select( blockEditorStore ).getSelectedBlockClientId();
@@ -412,23 +461,25 @@ wp.features.register( 'core/blocks/edit_color', {
 } );
 ```
 
-Now we get out of the box filtering when we retrieve features:
+Ahora obtenemos filtrado fuera de la caja cuando recuperamos funcionalidades:
 
 ```tsx
 const features = wp.features.get( {
-	// true by default, so this isn't needed for filtering to apply.
+	// true por defecto, así que esto no es necesario para que el filtrado se aplique.
 	filter: true,
 } );
 ```
 
-### Schema Matching Features
+---
 
-We can also match features based on the schema of the input or output, which is useful when we've already built up some context and want features that match what we have available to us.
+### 🔗 Coincidencia de Esquema
+
+También podemos hacer coincidir funcionalidades basadas en el esquema de entrada o salida, lo cual es útil cuando ya hemos construido algún contexto y queremos funcionalidades que coincidan con lo que tenemos disponible.
 
 ```php
 wp_register_feature("bigsky/blocks/edit_color", [
-  "name" => "Edit Block Color",
-  "description" => "Edits the color of a block for either the background or text.",
+  "name" => "Editar Color del Bloque",
+  "description" => "Edita el color de un bloque para el fondo o el texto.",
   "type" => "feature",
   "input_schema" => array(
     "color" => array(
@@ -447,7 +498,7 @@ wp_register_feature("bigsky/blocks/edit_color", [
 ]);
 ```
 
-This will return only the features that match the provided context of the client, in this case features that have a blockId property.
+Esto devolverá solo las funcionalidades que coincidan con el contexto proporcionado del cliente, en este caso funcionalidades que tienen una propiedad blockId.
 
 ```tsx
 const ctx = {
@@ -460,24 +511,20 @@ const features = wp.features.get( {
 } );
 ```
 
-We infer the schema from our context object and don't do strict matching, so all features with at least a "blockId" property will be returned.
+---
 
-### Features Query
+### 🔎 Consulta de Funcionalidades
 
-We may want to filter our features based on the user's query. For this, we can do two types of search:
+Es posible que queramos filtrar nuestras funcionalidades basadas en la consulta del usuario. Para esto, podemos hacer dos tipos de búsqueda:
 
-1. Standard keyword based search
-2. Semantic search
+| Tipo | Descripción |
+|------|-------------|
+| 🔤 **Búsqueda por palabras clave** | Coincidencia exacta de términos |
+| 🧠 **Búsqueda semántica** | Coincidencia por significado (requiere embeddings) |
 
-Please note, I will suggest that registered features have a corresponding repository for their metadata, like the database, and possibly reusing the `posts` table. This is to aid in querying when we have many features registered, or semantic search when that feature eventually surfaces in WordPress.
+> **Nota:** Las funcionalidades registradas deben tener un repositorio correspondiente para sus metadatos, como la base de datos, posiblemente reutilizando la tabla `posts`. Esto es para ayudar en la consulta cuando hay muchas funcionalidades registradas, o búsqueda semántica cuando esa característica eventualmente llegue a WordPress.
 
-For any server registered features, including the shallow registration (no callback) of client features, we may query them by either keyword, semantic search, or potentially a hybrid of the two.
-
-Semantic search is not a fully available option yet, due to the lack of vector DB support in WordPress, but we should plan for it to be. We can implement some more inefficient fallbacks for non-vector supported environments directly in PHP. I'm assuming at a minimum, posts will eventually have an `embedding` column so that features can be semantically queried like any other WordPress post content.
-
-Otherwise, we can resort to simple keyword search.
-
-This opens the door for some interesting features, like:
+#### Búsqueda Semántica
 
 ```tsx
 const userMessage = 'I want to edit the color of the block';
@@ -498,7 +545,7 @@ const { text } = await generateText( {
 } );
 ```
 
-If we can declare support for embedding in WordPress through a standard AI SDK, we can lean on this and make the query more developer friendly by embedding internally:
+O de forma más sencilla:
 
 ```tsx
 const userMessage = 'I want to edit the color of the block';
@@ -508,17 +555,19 @@ const features = wp.features.get( {
 } );
 ```
 
-## Client / Server Feature Awareness
+---
 
-Since registration of features can happen on either the server, client or both, it raises the question of how we can make both registries aware of each other.
+## 🔄 Conciencia Cliente/Servidor
 
-### Server to Client
+Dado que el registro de funcionalidades puede ocurrir en el servidor, cliente o ambos, surge la pregunta de cómo podemos hacer que ambos registros sean conscientes del otro.
 
-Whenever, `wp.features.get` is called, it fetches the list of features from the server over REST. This can be filtered based on the user's criteria as we've already seen.
+### Servidor → Cliente
 
-### Client to Server
+Cada vez que se llama a `wp.features.get`, obtiene la lista de funcionalidades del servidor sobre REST. Esto puede filtrarse según los criterios del usuario.
 
-For client registered features only, you may simply share the client features as context with your call:
+### Cliente → Servidor
+
+Para funcionalidades registradas solo del cliente, puedes simplemente compartir las funcionalidades del cliente como contexto con tu llamada:
 
 ```tsx
 const features = wp.features.get( { location: 'client' } );
@@ -532,7 +581,7 @@ const result = await feature.run( {
 } );
 ```
 
-But since this might be a common pattern, we can make things easier by automatically sharing the features with the request:
+O automáticamente con `shareFeatures`:
 
 ```tsx
 const tool = await feature.run(
@@ -545,34 +594,13 @@ const tool = await feature.run(
 );
 ```
 
-This will send the available client-only features with the request, and the server will merge them with the server registered features for that request, making them available on the server when you handle the feature call.
+---
 
-Or if you want more granular control, pass a callback that returns the same options that would be used for `wp.features.get`:
+## 🎛️ Integración con APIs Existentes de WordPress (Command Palette)
 
-```tsx
-const tool = await feature.run(
-	{
-		message: 'I want to edit the color of the block',
-	},
-	{
-		shareFeatures: ( ctx ) => {
-			return {
-				location: 'client', // setting this to server wouldn't make sense here, since they are already available on the server
-				categories: [ 'bigsky' ],
-				context: { infer: ctx, strict: false },
-			};
-		},
-	}
-);
-```
+Ya existen algunas funcionalidades muy útiles en WordPress que se integran bien con este sistema, una de ellas siendo la paleta de comandos del editor.
 
-## Integrating with Existing WordPress APIs (Command Palette)
-
-There already exists some very useful "features" in WordPress that tie into this system well, one of them being the editor command palette. How can we leverage this?
-
-### Registering Features from Commands
-
-The command palette already contains the parts needed to register features, so it can be pretty straightforward for the author to declare it:
+### Registrar Funcionalidades desde Comandos
 
 ```js
 const command = {
@@ -615,72 +643,40 @@ registerFeature( command.id, {
 } );
 ```
 
-Now this command is available to the LLM and can be used in a prompt:
+---
 
-```tsx
-const features = wp.features.get( { location: 'client' } );
+## 🔐 Permisos
 
-const { text } = await generateText( {
-	model: openai( 'gpt-4o' ),
-	tools: toolsFromFeatures( features ),
-	prompt: 'I want to clear all content from the editor.',
-} );
-```
+Por supuesto, necesitaremos asegurarnos de que las funcionalidades sean permisivas. Esto solo se aplicaría a las funcionalidades del lado del servidor, ya que las funcionalidades del lado del cliente ya están limitadas por el contexto del cliente.
 
-### Registering Commands from Features
+Para funcionalidades del lado del servidor, hay una propiedad `permissions` que puede usarse para especificar las funcionalidades disponibles para el usuario autenticado.
 
-There's also the other route of using what's already registered to power the command palette.
-
-```js
-const features = wp.features.get( {
-	location: 'client',
-	categories: [ 'editor', 'command-palette', 'block-selection' ],
-} );
-
-// register each feature as a command
-features.forEach( ( feature ) => {
-	const command = {
-		name: feature.id,
-		label: feature.name,
-		icon: feature.meta.icon,
-		callback: feature.callback,
-		context: 'block-selection',
-	};
-
-	wp.data.dispatch( wp.commands.store ).registerCommand( command );
-} );
-```
-
-## Permissions
-
-Of course, we will need to make sure that features are permissive. This would only apply to the server-side features, since the client-side features are already limited by the context of the client.
-
-For server-side features, there is a `permissions` property that can be used to specify the features available to the authenticated user.
+### Permisos por Capacidades
 
 ```php
 wp_register_feature("woocommerce/product/report", [
-  "name" => "WooCommerce Product Report",
-  "description" => "Gets a WooCommerce product report by ID.",
+  "name" => "Informe de Producto WooCommerce",
+  "description" => "Obtiene un informe de producto de WooCommerce por ID.",
   "type" => "resource",
   "permissions" => ["manage_woocommerce"],
 ]);
 ```
 
-Passing an array defaults to checking the current user's capabilities, or a string to check for their role.
+Pasar un array por defecto verifica las capacidades del usuario actual, o una cadena para verificar su rol.
 
-We may also pass a function that returns a boolean for more complex permissions.
+### Permisos Personalizados
 
 ```php
 wp_register_feature("woocommerce/product/report", [
-  "name" => "WooCommerce Product Report",
-  "description" => "Gets a WooCommerce product report by ID.",
+  "name" => "Informe de Producto WooCommerce",
+  "description" => "Obtiene un informe de producto de WooCommerce por ID.",
   "permissions" => function (WP_User $user, WP_Feature $_feature) {
     return $user->has_cap("manage_woocommerce");
   },
 ]);
 ```
 
-This could also be done through a `filter` hook, like `feature_user_can`.
+O mediante un hook de filtro:
 
 ```php
 add_filter('feature_woocommerce_product_report_user_can', function(WP_User $user, WP_Feature $feature) {
@@ -688,37 +684,43 @@ add_filter('feature_woocommerce_product_report_user_can', function(WP_User $user
 }, 10, 3);
 ```
 
-### Client / Server Separation Rules
+---
 
-Server and client features are kept separate but consiladated when ran.
+## ⚖️ Reglas de Separación Cliente/Servidor
 
--   Server registered features are kept under a `server` collection
--   Client registered features are kept under a `client` collection
--   Server registered features without callbacks are considered client, and will expect a client feature to be registered for it.
--   If a callback is provided on both a server and client registered feature, the server will be called first, then the client callback executed with the result of the server callback.
--   If a callback is **only** provided on the client, it will be called exclusively from the client. Note, we still need to check the server over REST to determine if its server counterpart is available.
+Las funcionalidades del servidor y cliente se mantienen separadas pero se consolidan cuando se ejecutan:
 
-## Customizability
+| Regla | Descripción |
+|-------|-------------|
+| 📦 Funcionalidades del servidor | Mantenidas bajo una colección `server` |
+| 📦 Funcionalidades del cliente | Mantenidas bajo una colección `client` |
+| 🔄 Sin callback en servidor | Consideradas del cliente, esperarán que se registre una funcionalidad del cliente |
+| ⚡ Ambos tienen callback | El servidor se llama primero, luego el cliente con el resultado del servidor |
+| 🎯 Solo callback del cliente | Llamado exclusivamente desde el cliente |
 
-To hook into features, and customize their behavior, several hooks and filters would be available. Much of the functionality is coming from the REST API, so we can wrap many of the current REST filter/hooks for the features system.
+---
 
-### Example Execution Filters
+## 🛠️ Personalización
+
+Para integrarse con funcionalidades y personalizar su comportamiento, estarían disponibles varios hooks y filtros. Gran parte de la funcionalidad proviene de la API REST, por lo que podemos envolver muchos de los filtros/hooks REST actuales para el sistema de funcionalidades.
+
+### Filtros de Ejemplo
 
 ```php
-// Global filter for feature input before execution (before REST call - 'rest_pre_dispatch')
+// Filtro global para entrada de funcionalidad antes de ejecución
 apply_filters('feature_pre_run', array $context, WP_Feature $feature);
 apply_filters("feature_{$feature_id}_pre_run", array $context, WP_Feature $feature);
 ```
 
-### Feature "Middleware" using Hooks
+### "Middleware" de Funcionalidades usando Hooks
 
 ```php
-// Rate limiting middleware for resource intensive features like "core/update_post"
+// Middleware de rate limiting para funcionalidades intensivas en recursos
 add_filter('feature_core_update_post_pre_run', function($context, WP_Feature $feature) {
   $transient_key = "feature_rate_limit_{$feature->id}";
   $rate_limit = get_transient($transient_key);
 
-  if ($rate_limit && $rate_limit >= 100) { // 100 requests max
+  if ($rate_limit && $rate_limit >= 100) { // 100 solicitudes máximo
     return new WP_Error(
       "rate_limit_exceeded",
       "Rate limit exceeded for this feature",
@@ -735,7 +737,7 @@ add_filter('feature_core_update_post_pre_run', function($context, WP_Feature $fe
   return $context;
 }, 10, 2);
 
-// Logging middleware
+// Middleware de logging
 add_action('feature_post_run', function(WP_Feature $feature, $output, $context) {
   error_log(sprintf(
     "Feature %s executed with context %s and output %s",
@@ -745,3 +747,43 @@ add_action('feature_post_run', function(WP_Feature $feature, $output, $context) 
   ));
 }, 10, 4);
 ```
+
+---
+
+## 📊 Resumen de Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    API de Funcionalidades de WordPress                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   ┌────────────────────┐          ┌────────────────────┐            │
+│   │   Cliente (JS)     │          │   Servidor (PHP)   │            │
+│   │                    │          │                    │            │
+│   │  wp.features.*     │◄────┬───►│ WP_Feature_Registry│            │
+│   │  - register()      │ REST│    │  - register()      │            │
+│   │  - find()          │ API │    │  - find()          │            │
+│   │  - get()           │     │    │  - get()           │            │
+│   │  - run()           │     │    │  - run()           │            │
+│   └────────────────────┘     │    └────────────────────┘            │
+│                              │                                      │
+│                              │    ┌────────────────────┐            │
+│                              └───►│ WP_Feature_Query   │            │
+│                                   │ Búsqueda/Filtering │            │
+│                                   └────────────────────┘            │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ✅ Conclusión
+
+La API de Funcionalidades de WordPress proporciona:
+
+1. **Detectabilidad** - Registro centralizado accesible desde cliente y servidor
+2. **Ejecutabilidad** - API unificada para ejecutar funcionalidades en cualquier lugar
+3. **Facilidad de uso** - API simple y bien documentada para desarrolladores
+
+Este enfoque permite que tanto humanos como sistemas de IA interactúen con WordPress de manera estandarizada y eficiente.
+
