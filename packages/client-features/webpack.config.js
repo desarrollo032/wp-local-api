@@ -28,7 +28,7 @@ module.exports = {
 			...defaultConfig.resolve?.alias,
 			'@automattic/wp-feature-api': path.resolve(
 				__dirname,
-				'../client'
+				'../client/src'
 			),
 		},
 	},

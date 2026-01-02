@@ -9,6 +9,14 @@ const path = require( 'path' );
 
 module.exports = {
 	...defaultConfig,
+	entry: {
+		index: './src/index.tsx',
+	},
+	output: {
+		...defaultConfig.output,
+		filename: '[name].js',
+		path: __dirname + '/build',
+	},
 	resolve: {
 		...defaultConfig.resolve,
 		alias: {
