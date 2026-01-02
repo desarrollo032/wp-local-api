@@ -61,6 +61,50 @@ jobs:
             echo "tag_created=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Run PHP lint
+        run: |
+          set -euo pipefail
+          echo "Running PHP syntax check..."
+          # Find PHP files excluding vendor, node_modules and .github
+          find . -type f -name "*.php" \
+            ! -path "./.git/*" ! -path "./.github/*" ! -path "./node_modules/*" ! -path "./vendor/*" \
+            -print0 | xargs -0 -n1 php -l
+
+      - name: Setup Node.js and run build/tests if present
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache Node.js and Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache
+            node_modules
+            ~/.composer/cache
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json', '**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+      - name: Install and run JS build/tests (optional)
+        run: |
+          set -euo pipefail
+          if [ -f package.json ]; then
+            echo "package.json found — installing npm dependencies"
+            npm ci
+            if grep -q '"build"' package.json; then
+              echo "Running npm run build"
+              npm run build
+            fi
+            if grep -q '"test"' package.json; then
+              echo "Running npm test"
+              npm test || true
+            fi
+          else
+            echo "No package.json in repo root — skipping JS build/tests"
+          fi
+
       - name: Prepare ZIP package
         id: package
         run: |
