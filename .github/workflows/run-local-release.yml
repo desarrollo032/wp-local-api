@@ -1,0 +1,33 @@
+name: Run Local Release Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_creation:
+        description: 'Run the local release packaging script'
+        required: false
+        default: 'true'
+
+jobs:
+  package:
+    name: Package release assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure script is executable
+        run: |
+          chmod +x scripts/make-local-release.sh || true
+
+      - name: Run local release script
+        run: |
+          ./scripts/make-local-release.sh
+
+      - name: Upload packaged assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            release/*.zip
+            release/*.sha256
