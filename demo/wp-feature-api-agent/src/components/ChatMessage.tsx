@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { Spinner } from '@wordpress/components';
-import { useContext } from '@wordpress/element';
+import { useContext, memo } from '@wordpress/element';
 
 /**
  * External dependencies
@@ -19,14 +19,25 @@ interface MessageProps {
 	text: string;
 }
 
-/*
+/**
  * Renders user message with markdown support
  */
-export const UserMessage = ( { text }: MessageProps ) => (
-	<div className="demo-chat-message demo-chat-message-user">
-		<Markdown>{ text }</Markdown>
-	</div>
-);
+export const UserMessage = memo( ( { text }: MessageProps ) => {
+	const context = useContext( ConversationContext );
+	const toolNameMap = context?.toolNameMap || {};
+
+	if ( text === null || text.trim() === '' ) {
+		return null;
+	}
+
+	return (
+		<div className="demo-chat-message demo-chat-message-user">
+			<Markdown>{ text }</Markdown>
+		</div>
+	);
+} );
+
+UserMessage.displayName = 'UserMessage';
 
 /**
  * Helper to attempt parsing JSON and formatting, falling back to raw string
@@ -45,11 +56,11 @@ function formatToolContent( content: string | null ): string {
 	}
 }
 
-/*
+/**
  * Assistant message component that renders AI responses with markdown support
  * and handles tool calls
  */
-export const AssistantMessage = ( { message }: { message: Message } ) => {
+export const AssistantMessage = memo( ( { message }: { message: Message } ) => {
 	const { content, role, name, tool_calls: toolCalls } = message;
 	const context = useContext( ConversationContext );
 	const toolNameMap = context?.toolNameMap || {};
@@ -95,7 +106,9 @@ export const AssistantMessage = ( { message }: { message: Message } ) => {
 			<Markdown>{ displayContent }</Markdown>
 		</div>
 	);
-};
+} );
+
+AssistantMessage.displayName = 'AssistantMessage';
 
 /**
  * Pending message component that shows a loading indicator

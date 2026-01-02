@@ -57,6 +57,9 @@ const wpApiClient: ApiClient = async ( endpoint, data ) => {
 // Storage key for localStorage, basic memory persistence.
 const STORAGE_KEY = 'wp-feature-api-agent-conversation';
 
+// Debug flag - set to false in production
+const DEBUG = false;
+
 export const ConversationProvider = ( {
 	children,
 }: ConversationProviderProps ) => {
@@ -123,20 +126,26 @@ export const ConversationProvider = ( {
 				}
 				const resp = await apiFetch( { path: '/wp/v2/ai-api-proxy/v1/models' } );
 				const data = resp?.data ?? resp;
-				if ( Array.isArray( data ) ) {
-					const parsed = data.map( ( m: any, i: number ) => ( {
-						id: m.id ?? m.model ?? m.name ?? String( i ),
-						owned_by: m.owned_by,
-						raw: m,
-					} ) );
-					setModels( parsed );
-					if ( parsed.length > 0 ) {
-						setSelectedModel( parsed[0].id );
+				
+				if ( ! Array.isArray( data ) ) {
+					if ( DEBUG ) {
+						console.warn( 'Invalid response format for models:', data );
 					}
+					return;
+				}
+				
+				const parsed = data.map( ( m: any, i: number ) => ( {
+					id: m.id ?? m.model ?? m.name ?? String( i ),
+					owned_by: m.owned_by,
+					raw: m,
+				} ) );
+				setModels( parsed );
+				if ( parsed.length > 0 && ! selectedModel ) {
+					setSelectedModel( parsed[ 0 ].id );
 				}
 			} catch ( e ) {
-				// eslint-disable-next-line no-console
-				console.error( 'Failed to fetch model list:', e );
+				// Use warn instead of error - API may not be configured
+				console.warn( 'Failed to fetch model list:', e );
 			}
 		})();
 	}, [] );

@@ -44,6 +44,7 @@
 	padding: 8px 12px;
 	border-radius: 12px 12px 0 0;
 	min-height: 48px;
+	gap: 8px;
 
 	h2 {
 		color: #ffffff;
@@ -267,5 +268,26 @@
 
 	.components-spinner {
 		margin: 0;
+	}
+}
+
+// Provider badge styles
+.provider-badge {
+	font-size: 10px;
+	font-weight: 600;
+	padding: 2px 6px;
+	border-radius: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	flex-shrink: 0;
+
+	&.provider-badge-openai {
+		background: rgba(16, 163, 127, 0.9);
+		color: white;
+	}
+
+	&.provider-badge-openrouter {
+		background: rgba(99, 91, 255, 0.9);
+		color: white;
 	}
 }

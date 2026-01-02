@@ -16,6 +16,12 @@ import {
 	PendingAssistantMessage,
 } from './ChatMessage';
 
+// Provider badge configuration
+const PROVIDER_BADGES = {
+	openai: { label: 'OpenAI', className: 'provider-badge-openai' },
+	openrouter: { label: 'OpenRouter', className: 'provider-badge-openrouter' },
+};
+
 export const ChatApp = () => {
 	const { messages, sendMessage, isLoading, clearConversation, models, selectedModel, setSelectedModel } = useConversation();
 	const [ input, setInput ] = useState( '' );
@@ -61,6 +67,15 @@ export const ChatApp = () => {
 						/>
 					</div>
 				) }
+				{ models && models.length > 0 && (() => {
+					const provider = models[ 0 ]?.owned_by || 'openai';
+					const badgeConfig = PROVIDER_BADGES[ provider as keyof typeof PROVIDER_BADGES ] || PROVIDER_BADGES.openai;
+					return (
+						<span className={ `provider-badge ${ badgeConfig.className }` }>
+							{ badgeConfig.label }
+						</span>
+					);
+				})() }
 				<div className="chat-header-actions">
 					<Button
 						onClick={ clearConversation }

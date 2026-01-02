@@ -5,6 +5,9 @@ import type { Message } from '../types/messages';
 import type { ToolExecutor } from './tool-executor';
 import { defaultSystemPrompt } from './system-prompt';
 
+// Debug flag - set to false in production
+const DEBUG = false;
+
 /**
  * Defines the shape of the function responsible for making API calls.
  * This allows injecting different clients (e.g., wp.apiFetch, standard fetch).
@@ -106,25 +109,29 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 					apiPayload.tool_choice = 'auto';
 				}
 
-				// eslint-disable-next-line no-console
-				console.log(
-					'Calling API Proxy with history:',
-					JSON.stringify( currentTurnHistory, null, 2 )
-				);
+				if ( DEBUG ) {
+					// eslint-disable-next-line no-console
+					console.log(
+						'Calling API Proxy with history:',
+						JSON.stringify( currentTurnHistory, null, 2 )
+					);
 
-				// eslint-disable-next-line no-console
-				console.log(
-					'Calling API Proxy with full payload:',
-					apiPayload
-				);
+					// eslint-disable-next-line no-console
+					console.log(
+						'Calling API Proxy with full payload:',
+						apiPayload
+					);
+				}
 
 				const response = await apiClient(
 					'/wp/v2/ai-api-proxy/v1/chat/completions',
 					apiPayload
 				);
 
-				// eslint-disable-next-line no-console
-				console.log( 'Received response from API Proxy:', response );
+				if ( DEBUG ) {
+					// eslint-disable-next-line no-console
+					console.log( 'Received response from API Proxy:', response );
+				}
 
 				const messageFromAPI = response?.choices?.[ 0 ]?.message;
 
@@ -216,21 +223,25 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 							}
 
 							if ( toolResultMessage === undefined ) {
-								// eslint-disable-next-line no-console
-								console.log(
-									`Executing tool: ${ toolName } with args:`,
-									toolArgs
-								);
+								if ( DEBUG ) {
+									// eslint-disable-next-line no-console
+									console.log(
+										`Executing tool: ${ toolName } with args:`,
+										toolArgs
+									);
+								}
 								const { result, error } =
 									await toolExecutor.executeTool(
 										toolName,
 										toolArgs
 									);
-								// eslint-disable-next-line no-console
-								console.log( `Tool ${ toolName } result:`, {
-									result,
-									error,
-								} );
+								if ( DEBUG ) {
+									// eslint-disable-next-line no-console
+									console.log( `Tool ${ toolName } result:`, {
+										result,
+										error,
+									} );
+								}
 
 								let content: string;
 
