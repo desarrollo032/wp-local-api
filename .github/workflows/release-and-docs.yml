@@ -1,16 +1,5 @@
 name: Release & Documentation
 
-# =============================================================================
-# AUTOMATIZACIÓN COMPLETA DE RELEASE Y DOCUMENTACIÓN
-# =============================================================================
-# Este workflow:
-# 1. Clasifica commits (Added, Changed, Fixed, Breaking)
-# 2. Genera/actualiza CHANGELOG.md
-# 3. Actualiza documentación en /docs
-# 4. Crea tag y GitHub Release
-# 5. Genera ZIP del plugin
-# =============================================================================
-
 on:
   push:
     branches:
@@ -38,16 +27,12 @@ env:
   PLUGIN_NAME: "WordPress Feature API"
 
 jobs:
-  # ===========================================================================
-  # JOB 1: ANALIZAR COMMITS Y PREPARAR DATOS
-  # ===========================================================================
   analyze:
     name: Analyze Commits & Prepare Data
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract_version.outputs.version }}
       has_changes: ${{ steps.analyze_commits.outputs.has_changes }}
-      changelog_content: ${{ steps.generate_changelog.outputs.content }}
       categories: ${{ steps.analyze_commits.outputs.categories }}
     steps:
       - name: Checkout repository
@@ -60,7 +45,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Extraer versión del plugin
       - name: Extract plugin version
         id: extract_version
         run: |
@@ -71,7 +55,6 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # Verificar si el tag ya existe
       - name: Check existing tag
         id: tag_check
         run: |
@@ -79,126 +62,107 @@ jobs:
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
-      # Analizar y clasificar commits
       - name: Analyze and classify commits
         id: analyze_commits
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
+
           if [ -z "$LAST_TAG" ]; then
             echo "No previous tag found. Using all commits."
-            COMMITS=$(git log --oneline --format="%s||%b||%h" -n 50)
+            COMMITS=$(git log --oneline --format="%s||%h" -n 50)
           else
             echo "Analyzing commits since $LAST_TAG"
-            COMMITS=$(git log "$LAST_TAG"..HEAD --oneline --format="%s||%b||%h")
+            COMMITS=$(git log "$LAST_TAG"..HEAD --oneline --format="%s||%h")
           fi
-          
-          # Inicializar contadores
+
           ADDED_COUNT=0
           CHANGED_COUNT=0
           FIXED_COUNT=0
           BREAKING_COUNT=0
-          
-          # Archivos temporales para分类
+
           ADDED_FILE="$GITHUB_WORKSPACE/commits_added.txt"
           CHANGED_FILE="$GITHUB_WORKSPACE/commits_changed.txt"
           FIXED_FILE="$GITHUB_WORKSPACE/commits_fixed.txt"
           BREAKING_FILE="$GITHUB_WORKSPACE/commits_breaking.txt"
-          
+
           > "$ADDED_FILE"
           > "$CHANGED_FILE"
           > "$FIXED_FILE"
           > "$BREAKING_FILE"
-          
-          while IFS='||' read -r msg body sha; do
+
+          while IFS='||' read -r msg sha; do
             [ -z "$msg" ] && continue
-            
-            # Clasificar por prefijos convencionales
+
             lower_msg=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
-            lower_body=$(echo "$body" | tr '[:upper:]' '[:lower:]')
-            
-            # Detectar breaking changes
-            if [[ "$lower_msg" =~ ^breaking || "$lower_body" =~ ^breaking || "$body" =~ "BREAKING" ]]; then
+
+            if [[ "$lower_msg" =~ ^breaking ]]; then
               echo "- $msg ([$sha](https://github.com/${{ github.repository }}/commit/$sha))" >> "$BREAKING_FILE"
               ((BREAKING_COUNT++))
-            # Detectar fixes
             elif [[ "$lower_msg" =~ ^(fix|fixed|bugfix|correct|hotfix) ]]; then
               echo "- $msg ([$sha](https://github.com/${{ github.repository }}/commit/$sha))" >> "$FIXED_FILE"
               ((FIXED_COUNT++))
-            # Detectar nuevas features
             elif [[ "$lower_msg" =~ ^(feat|feature|added|add|new) ]]; then
               echo "- $msg ([$sha](https://github.com/${{ github.repository }}/commit/$sha))" >> "$ADDED_FILE"
               ((ADDED_COUNT++))
-            # El resto son cambios
             else
               echo "- $msg ([$sha](https://github.com/${{ github.repository }}/commit/$sha))" >> "$CHANGED_FILE"
               ((CHANGED_COUNT++))
             fi
           done <<< "$COMMITS"
-          
-          # Determinar si hay cambios significativos
+
           TOTAL=$((ADDED_COUNT + CHANGED_COUNT + FIXED_COUNT + BREAKING_COUNT))
           if [ "$TOTAL" -eq 0 ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
-          
-          # Guardar categorías como JSON
-          echo "{\"added\":$ADDED_COUNT,\"changed\":$CHANGED_COUNT,\"fixed\":$FIXED_COUNT,\"breaking\":$BREAKING_COUNT}" >> $GITHUB_OUTPUT
-          
+
+          echo "categories={\"added\":$ADDED_COUNT,\"changed\":$CHANGED_COUNT,\"fixed\":$FIXED_COUNT,\"breaking\":$BREAKING_COUNT}" >> $GITHUB_OUTPUT
+
           echo "Commits classified: Added=$ADDED_COUNT, Changed=$CHANGED_COUNT, Fixed=$FIXED_COUNT, Breaking=$BREAKING_COUNT"
 
-      # Generar contenido del changelog
       - name: Generate changelog content
         id: generate_changelog
         run: |
           VERSION="${{ steps.extract_version.outputs.version }}"
           DATE=$(date +'%Y-%m-%d')
-          
-          # Leer archivos clasificados
+
           ADDED=$(cat "$GITHUB_WORKSPACE/commits_added.txt" 2>/dev/null || echo "")
           CHANGED=$(cat "$GITHUB_WORKSPACE/commits_changed.txt" 2>/dev/null || echo "")
           FIXED=$(cat "$GITHUB_WORKSPACE/commits_fixed.txt" 2>/dev/null || echo "")
           BREAKING=$(cat "$GITHUB_WORKSPACE/commits_breaking.txt" 2>/dev/null || echo "")
-          
-          # Construir contenido Markdown
-          CONTENT="## [$VERSION] - $DATE"
-          CONTENT+="\n\n"
-          
+
+          CONTENT="## [$VERSION] - $DATE"$'\n\n'
+
           if [ -n "$BREAKING" ]; then
-            CONTENT+="### ⚠️ Breaking Changes\n\n$BREAKING\n\n"
+            CONTENT+="### ⚠️ Breaking Changes"$'\n\n'"$BREAKING"$'\n\n'
           fi
-          
+
           if [ -n "$ADDED" ]; then
-            CONTENT+="### ✨ Added\n\n$ADDED\n\n"
+            CONTENT+="### ✨ Added"$'\n\n'"$ADDED"$'\n\n'
           fi
-          
+
           if [ -n "$CHANGED" ]; then
-            CONTENT+="### 🔄 Changed\n\n$CHANGED\n\n"
+            CONTENT+="### 🔄 Changed"$'\n\n'"$CHANGED"$'\n\n'
           fi
-          
+
           if [ -n "$FIXED" ]; then
-            CONTENT+="### 🐛 Fixed\n\n$FIXED\n\n"
+            CONTENT+="### 🐛 Fixed"$'\n\n'"$FIXED"$'\n\n'
           fi
-          
+
           if [ -z "$BREAKING$ADDED$CHANGED$FIXED" ]; then
-            CONTENT+="_No significant changes._\n\n"
+            CONTENT+="_No significant changes."$'\n\n'
           fi
-          
-          # Guardar para siguientes steps
+
           echo "$CONTENT" > "$GITHUB_WORKSPACE/changelog_entry.txt"
-          
-          # Enviar a output (escapando correctamente)
-          CONTENT_ESCAPED=$(echo "$CONTENT" | sed 's/\t/    /g' | head -c 6000)
+
+          CONTENT_ESCAPED=$(echo "$CONTENT" | head -c 6000)
           echo "content<<EOF" >> $GITHUB_OUTPUT
           echo "$CONTENT_ESCAPED" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  # ===========================================================================
-  # JOB 2: ACTUALIZAR CHANGELOG
-  # ===========================================================================
   update_changelog:
     name: Update CHANGELOG.md
     needs: analyze
@@ -217,14 +181,9 @@ jobs:
         run: |
           if [ -f "CHANGELOG.md" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            EXISTING=$(cat CHANGELOG.md)
-            echo "existing<<EOF" >> $GITHUB_OUTPUT
-            echo "$EXISTING" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            # Template de CHANGELOG vacío
-            cat > CHANGELOG.md << 'EOF'
+            cat > CHANGELOG.md << 'EOFHEADER'
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -234,39 +193,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-EOF
+EOFHEADER
           fi
 
       - name: Create new CHANGELOG entry
         run: |
           VERSION="${{ needs.analyze.outputs.version }}"
           ENTRY=$(cat "$GITHUB_WORKSPACE/changelog_entry.txt")
-          
-          if [ "${{ steps.read_changelog.outputs.exists }}" == "true" ]; then
-            # Insertar después del header y "Unreleased"
-            EXISTING="${{ steps.read_changelog.outputs.existing }}"
-            
-            # Crear nuevo CHANGELOG
-            {
-              echo "# Changelog"
-              echo ""
-              echo "All notable changes to this project will be documented in this file."
-              echo ""
-              echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),"
-              echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
-              echo ""
-              echo "## [Unreleased]"
-              echo ""
-              echo "## [$VERSION] - $(date +'%Y-%m-%d')"
-              echo ""
-              echo "$ENTRY"
-              echo ""
-              echo "$EXISTING" | tail -n +7  # Saltar header
-            } > CHANGELOG.md
-          else
-            echo "$ENTRY" >> CHANGELOG.md
+
+          {
+            echo "# Changelog"
+            echo ""
+            echo "All notable changes to this project will be documented in this file."
+            echo ""
+            echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),"
+            echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+            echo ""
+            echo "## [Unreleased]"
+            echo ""
+            echo "## [$VERSION] - $(date +'%Y-%m-%d')"
+            echo ""
+            echo "$ENTRY"
+          } > CHANGELOG.md
+
+          if [ -f CHANGELOG.md ]; then
+            echo "" >> CHANGELOG.md
+            tail -n +7 CHANGELOG.md >> CHANGELOG.md 2>/dev/null || true
           fi
-          
+
           cat CHANGELOG.md
 
       - name: Commit CHANGELOG changes
@@ -280,9 +234,6 @@ EOF
             git push
           fi
 
-  # ===========================================================================
-  # JOB 3: ACTUALIZAR DOCUMENTACIÓN TÉCNICA
-  # ===========================================================================
   update_docs:
     name: Update Technical Documentation
     needs: analyze
@@ -300,20 +251,16 @@ EOF
         id: generate_docs
         run: |
           VERSION="${{ needs.analyze.outputs.version }}"
-          
-          # Crear directorio para documentación de esta versión
+
           DOCS_DIR="docs/releases"
           mkdir -p "$DOCS_DIR"
-          
-          # Generar notas de release
+
           RELEASE_NOTES="$DOCS_DIR/$VERSION.md"
-          
-          # Extraer categorías
+
           CATEGORIES='${{ needs.analyze.outputs.categories }}'
           ADDED_COUNT=$(echo "$CATEGORIES" | grep -o '"added":[0-9]*' | grep -o '[0-9]*' || echo "0")
-          
-          # Crear documento de release
-          cat > "$RELEASE_NOTES" << EOF
+
+          cat > "$RELEASE_NOTES" << EOFNOTE
 ---
 title: Release $VERSION
 sidebar_label: v$VERSION
@@ -322,7 +269,7 @@ description: Changes and improvements in version $VERSION
 
 # Release $VERSION
 
-**Fecha:** $(date +'%Y-%m-%d')  
+**Fecha:** $(date +'%Y-%m-%d')
 **Versión:** $VERSION
 
 ## Resumen de Cambios
@@ -343,10 +290,7 @@ Para actualizar a esta versión, descarga el nuevo ZIP desde GitHub Releases
 o actualiza vía Composer/npm.
 
 \`\`\`bash
-# Si usas Composer
 composer require automattic/wp-feature-api:$VERSION
-
-# Si usas npm
 npm install @automattic/wp-feature-api@$VERSION
 \`\`\`
 
@@ -354,61 +298,13 @@ npm install @automattic/wp-feature-api@$VERSION
 
 - **WordPress mínimo:** 6.0
 - **PHP mínimo:** 7.4
-EOF
-          
+EOFNOTE
+
           echo "Documentación de release creada: $RELEASE_NOTES"
-          
-          # Actualizar índice de documentación
-          if [ -f "docs/README.md" ]; then
-            # Añadir referencia al nuevo release
-            sed -i "/## Releases/a\\\n## v$VERSION ($(date +'%Y-%m-%d'))\n- [Notas de release](releases/$VERSION.md)" docs/README.md
-          fi
-
-      - name: Check for breaking changes documentation
-        run: |
-          BREAKING_FILE="$GITHUB_WORKSPACE/commits_breaking.txt"
-          if [ -s "$BREAKING_FILE" ]; then
-            echo "breaking_changes=true" >> $GITHUB_OUTPUT
-            
-            # Crear o actualizar UPGRADING.md
-            if [ ! -f "UPGRADING.md" ]; then
-              cat > UPGRADING.md << 'EOF'
-# Upgrade Guide
-
-This document contains breaking changes and migration guides for major versions.
-
-## Table of Contents
-
-EOF
-            fi
-            
-            # Añadir sección de breaking changes
-            cat >> UPGRADING.md << EOF
-
----
-
-## Upgrading to ${{ needs.analyze.outputs.version }}
-
-### Breaking Changes
-
-The following changes may require code modifications:
-
-$(cat "$BREAKING_FILE")
-
-### Migration Steps
-
-1. Review the breaking changes listed above
-2. Test the upgrade in a staging environment
-3. Update your code as needed
-4. Deploy to production
-EOF
-          else
-            echo "breaking_changes=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Commit documentation changes
         run: |
-          git add docs/ UPGRADING.md 2>/dev/null || true
+          git add docs/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No documentation changes to commit"
           else
@@ -416,9 +312,6 @@ EOF
             git push
           fi
 
-  # ===========================================================================
-  # JOB 4: CONSTRUIR Y CREAR RELEASE
-  # ===========================================================================
   release:
     name: Create Release
     needs: [analyze, update_changelog, update_docs]
@@ -435,6 +328,16 @@ EOF
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install dependencies
         run: |
           if [ -f "composer.json" ]; then composer install --no-dev --optimize-autoloader --no-interaction; fi
@@ -448,7 +351,7 @@ EOF
         run: |
           PLUGIN_SLUG="${{ env.PLUGIN_SLUG }}"
           mkdir -p "$PLUGIN_SLUG"
-          
+
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
@@ -474,7 +377,7 @@ EOF
             --exclude='packages/*/tsconfig*.json' \
             --exclude='packages/*/webpack.config.js' \
             . "$PLUGIN_SLUG/"
-          
+
           echo "Archivos preparados"
           ls -la "$PLUGIN_SLUG/"
 
@@ -491,25 +394,19 @@ EOF
         run: |
           VERSION="${{ needs.analyze.outputs.version }}"
           TAG_NAME="v$VERSION"
-          
-          CHANGELOG=$(cat "$GITHUB_WORKSPACE/changelog_entry.txt")
-          
-          git tag -a "$TAG_NAME" -m "Release $VERSION" <<EOF
-Release $VERSION
 
-$CHANGELOG
-EOF
-          
+          CHANGELOG=$(cat "$GITHUB_WORKSPACE/changelog_entry.txt" | head -c 500)
+
+          git tag -a "$TAG_NAME" -m "Release $VERSION" -m "$CHANGELOG"
+
           git push origin "$TAG_NAME"
 
       - name: Create GitHub Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.analyze.outputs.version }}
-          release_name: Release ${{ needs.analyze.outputs.version }}
+          name: Release ${{ needs.analyze.outputs.version }}
           body: |
             ## 📦 ${{ env.PLUGIN_NAME }} v${{ needs.analyze.outputs.version }}
 
@@ -521,33 +418,21 @@ EOF
 
             ### 📥 Installation
 
-            **Via WordPress Admin:**
-            Download the ZIP file and install via Plugins > Add New > Upload Plugin
-
             **Via Composer:**
-            \`\`\`bash
+            ```
             composer require automattic/wp-feature-api:${{ needs.analyze.outputs.version }}
-            \`\`\`
+            ```
 
             **Via npm:**
-            \`\`\`bash
+            ```
             npm install @automattic/wp-feature-api@${{ needs.analyze.outputs.version }}
-            \`\`\`
+            ```
 
             ---
-            [View full changelog](CHANGELOG.md) • [Compare versions](https://github.com/${{ github.repository }}/compare/...v${{ needs.analyze.outputs.version }})
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+            [View full changelog](CHANGELOG.md)
+          files: ${{ env.PLUGIN_SLUG }}-${{ needs.analyze.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.PLUGIN_SLUG }}-${{ needs.analyze.outputs.version }}.zip
-          asset_name: ${{ env.PLUGIN_SLUG }}-${{ needs.analyze.outputs.version }}.zip
-          asset_content_type: application/zip
 
       - name: Summary
         run: |
@@ -560,38 +445,4 @@ EOF
           echo "📦 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.analyze.outputs.version }}"
           echo "📝 Changelog: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
           echo "📚 Docs: https://github.com/${{ github.repository }}/tree/main/docs"
-
-  # ===========================================================================
-  # JOB 5: NOTIFICAR NUEVAS FUNCIONALIDADES
-  # ===========================================================================
-  notify_new_features:
-    name: Notify New Features
-    needs: analyze
-    if: needs.analyze.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate feature notification
-        run: |
-          VERSION="${{ needs.analyze.outputs.version }}"
-          
-          echo "## 🚀 Nuevas funcionalidades en v$VERSION"
-          echo ""
-          ADDED_FILE="$GITHUB_WORKSPACE/commits_added.txt"
-          if [ -s "$ADDED_FILE" ]; then
-            echo "### ✨ Nuevas Features"
-            echo ""
-            cat "$ADDED_FILE"
-            echo ""
-          fi
-          
-          BREAKING_FILE="$GITHUB_WORKSPACE/commits_breaking.txt"
-          if [ -s "$BREAKING_FILE" ]; then
-            echo "### ⚠️ Breaking Changes"
-            echo ""
-            cat "$BREAKING_FILE"
-            echo ""
-          fi
-          
-          echo "---"
-          echo "Ver documentación completa en: docs/releases/$VERSION.md"
 
