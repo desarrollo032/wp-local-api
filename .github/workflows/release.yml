@@ -11,58 +11,53 @@ permissions:
 
 jobs:
   release:
-    name: Create Release v${{ github.ref_name }}
+    name: Create Release ${{ github.ref_name }}
     runs-on: ubuntu-22.04
 
     steps:
-      # Checkout code
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Setup Node.js
-      - name: Setup Node
+      # 2. Setup Node.js 18
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
-      # Setup PHP
+      # 3. Setup PHP 8.2 with Composer
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           tools: composer
 
-      # Get version from tag
-      - name: Extract version
-        id: version
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      # Install dependencies
+      # 4. Install dependencies
       - name: Install dependencies
         run: |
           npm install --legacy-peer-deps
           composer install --no-dev --prefer-dist --no-interaction
 
-      # Build plugin
+      # 5. Build plugin
       - name: Build plugin
         run: npm run build
 
-      # Prepare plugin packages
-      - name: Prepare plugin packages
+      # 6. Prepare and create ZIP packages
+      - name: Create ZIP packages
         run: |
           mkdir -p release/wp-feature-api
           mkdir -p release/wp-feature-api-agent
 
-          # Copiar plugin principal (excluyendo archivos de desarrollo)
+          # Plugin principal (wp-feature-api.zip)
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='src' \
             --exclude='vendor' \
             --exclude='.gitignore' \
             --exclude='.gitattributes' \
@@ -86,40 +81,45 @@ jobs:
             --exclude='packages/*/webpack.config.js' \
             . release/wp-feature-api/
 
-          # Copiar demo agent plugin
+          # Agent package (wp-feature-api-agent.zip)
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='node_modules' \
-            --exclude='build/' \
+            --exclude='tests' \
+            --exclude='src' \
+            --exclude='build' \
             --exclude='*.map' \
             --exclude='.gitignore' \
             demo/wp-feature-api-agent/ release/wp-feature-api-agent/
 
-      # Create ZIP files
-      - name: Create ZIP files
-        run: |
+          # Create ZIP files
           cd release
           zip -r wp-feature-api.zip wp-feature-api
           zip -r wp-feature-api-agent.zip wp-feature-api-agent
+
+      # 7. Calculate SHA256
+      - name: Calculate SHA256
+        run: |
+          cd release
           sha256sum wp-feature-api.zip > wp-feature-api.zip.sha256
           sha256sum wp-feature-api-agent.zip > wp-feature-api-agent.zip.sha256
 
-      # Generate changelog
+      # 8. Generate changelog
       - name: Generate changelog
         id: changelog
         run: |
           PREV_TAG=v0.1.7
-          CURRENT_TAG=v${{ steps.version.outputs.version }}
+          CURRENT_TAG=${{ github.ref_name }}
           
-          # Generate changelog with contributors
-          CHANGELOG=$(git log $PREV_TAG..$CURRENT_TAG --pretty=format:'* %s by @%an' --reverse)
+          # Generate changelog with format: "* %s by @%an in #%h"
+          CHANGELOG=$(git log $PREV_TAG..$CURRENT_TAG --pretty=format:'* %s by @%an in #%h' --reverse)
           
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="* No changes from previous version"
           fi
           
-          # Add header
+          # Create CHANGELOG.md
           echo "# Changelog" > CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "## $CURRENT_TAG" >> CHANGELOG.md
@@ -129,35 +129,23 @@ jobs:
           echo "---" >> CHANGELOG.md
           echo "*Full changelog:* https://github.com/${{ github.repository }}/compare/$PREV_TAG...$CURRENT_TAG" >> CHANGELOG.md
           
+          # Save to GITHUB_OUTPUT
           echo "changelog=$(cat CHANGELOG.md)" >> $GITHUB_OUTPUT
 
-      # Publish GitHub Release
+      # 9. Publish GitHub Release
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: |
-            ## 📦 Release v${{ steps.version.outputs.version }}
-
-            ### Changelog
+            ## Changelog
 
             ${{ steps.changelog.outputs.changelog }}
 
             ---
-            
-            ### 📥 Assets
 
-            | File | SHA256 |
-            |------|--------|
-            | wp-feature-api.zip | $(cat release/wp-feature-api.zip.sha256) |
-            | wp-feature-api-agent.zip | $(cat release/wp-feature-api-agent.zip.sha256) |
-
-            ### 👥 Contributors
-
-            <!-- CONTRIBUTORS_START -->
-            ${{ github.actor }}
-            <!-- CONTRIBUTORS_END -->
+            **Full changelog:** https://github.com/${{ github.repository }}/compare/v0.1.7...${{ github.ref_name }}
           files: |
             release/wp-feature-api.zip
             release/wp-feature-api-agent.zip
@@ -167,15 +155,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Summary
       - name: Summary
         run: |
-          echo "## ✅ Release v${{ steps.version.outputs.version }} publicado exitosamente"
+          echo "## ✅ Release ${{ github.ref_name }} published successfully"
           echo ""
-          echo "**Assets generados:**"
+          echo "**Assets generated:**"
           ls -lh release/
           echo ""
-          echo "**Próximos pasos:**"
-          echo "1. Ve a https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
-          echo "2. Edita el release para añadir más detalles si es necesario"
-          echo "3. Comparte el release con la comunidad"
+          echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
 
