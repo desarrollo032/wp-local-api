@@ -44,17 +44,17 @@ interface ApiFetchOptions {
 /**
  * Get typed dispatch function for our store
  */
-const getDispatch = () => dispatch( store as any ) as FeatureStoreDispatch;
+const getDispatch = () => dispatch( store ) as FeatureStoreDispatch;
 
 /**
  * Get typed select function for our store
  */
-const getSelect = () => select( store as any ) as FeatureStoreSelect;
+const getSelect = () => select( store ) as FeatureStoreSelect;
 
 /**
  * Get typed resolveSelect function for our store
  */
-const getResolveSelect = () => resolveSelect( store as any ) as any;
+const getResolveSelect = () => resolveSelect( store ) as any;
 
 /**
  * Registers a feature with the feature registry.

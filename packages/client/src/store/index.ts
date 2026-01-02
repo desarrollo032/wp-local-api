@@ -27,15 +27,21 @@ const isStoreRegistered = () => {
 	return window.__WP_FEATURE_API_STORE_REGISTERED === true;
 };
 
-// Create and export the store
-// The store config is typed as 'any' to avoid strict type checking issues with @wordpress/data
-// This is safe because the actual types are defined by the imported modules
+// Type definition for store configuration
+interface FeatureStoreConfig {
+	reducer: typeof reducer;
+	actions: typeof actions;
+	selectors: typeof selectors;
+	resolvers: typeof resolvers;
+}
+
+// Create and export the store with proper typing
 export const store = createReduxStore( STORE_NAME, {
 	reducer,
 	actions,
 	selectors,
 	resolvers,
-} as any );
+} as FeatureStoreConfig );
 
 if ( ! isStoreRegistered() ) {
 	try {

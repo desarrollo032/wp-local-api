@@ -8,18 +8,16 @@
     "build": "wp-scripts build",
     "lint": "wp-scripts lint-js",
     "format": "wp-scripts format",
-    "clean": "rimraf build build-types tsconfig.tsbuildinfo",
-    "prepare": "npm run build"
+    "clean": "rimraf build build-types tsconfig.tsbuildinfo"
   },
-  "dependencies": {
-    "@automattic/wp-feature-api": "*",
+  "peerDependencies": {
+    "@automattic/wp-feature-api": "^0.1.9",
     "@wordpress/api-fetch": "^7.37.0",
     "@wordpress/block-editor": "^15.10.0",
     "@wordpress/blocks": "^15.10.0",
     "@wordpress/data": "^10.37.0",
     "@wordpress/editor": "^14.37.0",
-    "@wordpress/i18n": "^6.10.0",
-    "@wordpress/dependency-extraction-webpack-plugin": "^6.30.0"
+    "@wordpress/i18n": "^6.10.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
