@@ -1,9 +1,9 @@
 {
   "name": "wp-feature-api",
   "version": "0.1.9",
+  "private": true,
   "description": "A system for exposing WordPress functionality in a standardized, discoverable way for both server and client-side use",
   "main": "src/index.js",
-  "private": true,
   "workspaces": [
     "packages/*",
     "demo/*"
@@ -12,6 +12,7 @@
     "build": "npm run build:packages && wp-scripts build",
     "build:packages": "npm run build --workspaces --if-present",
     "format": "wp-scripts format",
+    "lint": "npm-run-all lint:*",
     "lint:css": "wp-scripts lint-style",
     "lint:js": "wp-scripts lint-js",
     "lint:packages": "npm run lint:js --workspaces --if-present",
@@ -26,10 +27,16 @@
     "test:unit:php:debug": "npm-run-all test:unit:php:setup:debug test:unit:php:base",
     "serve": "wp-env start --xdebug",
     "wp-env": "wp-env",
-    "clean": "npm run clean --workspaces --if-present && rm -rf build tsconfig.tsbuildinfo",
+    "clean": "rimraf build tsconfig.tsbuildinfo && npm run clean --workspaces --if-present",
     "setup": "npm install && composer install"
   },
-  "keywords": ["wordpress","api","features","llm","ai"],
+  "keywords": [
+    "wordpress",
+    "api",
+    "features",
+    "llm",
+    "ai"
+  ],
   "author": "Automattic",
   "homepage": "https://automattic.ai/",
   "license": "GPL-2.0-or-later",
@@ -48,7 +55,7 @@
     "@wordpress/i18n": "^6.10.0",
     "@wordpress/icons": "^11.4.0",
     "@wordpress/plugins": "^7.30.0",
-    "@wp-feature-api/client-features": "^1.0.0",
+    "@automattic/wp-feature-api": "^0.1.9",
     "node-fetch": "^3.3.2",
     "react-markdown": "^10.1.0"
   },
@@ -56,20 +63,20 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.3",
-    "@types/wordpress__block-editor": "^12.0.0",
-    "@types/wordpress__blocks": "^13.0.0",
-    "@types/wordpress__editor": "^14.12.0",
     "@wordpress/dependency-extraction-webpack-plugin": "^6.30.0",
     "@wordpress/env": "^10.25.0",
     "@wordpress/eslint-plugin": "^23.0.0",
     "@wordpress/prettier-config": "^4.25.0",
     "@wordpress/scripts": "^31.2.0",
-    "eslint": "^8.60.0",
+    "eslint": "^8.57.1",
     "eslint-import-resolver-node": "^0.3.5",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-react-compiler": "^19.0.0-beta-aeaed83-20250323",
     "eslint-plugin-storybook": "^0.12.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "npm:wp-prettier@3.0.3"
+    "prettier": "npm:wp-prettier@3.0.3",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.6.3"
   }
 }
+

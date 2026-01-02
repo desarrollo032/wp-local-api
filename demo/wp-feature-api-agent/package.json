@@ -1,23 +1,30 @@
 {
   "name": "wp-feature-api-agent",
   "version": "0.1.1",
-  "description": "TypeScript AI agent for the WordPress Feature API",
+  "description": "TypeScript AI agent for the WordPress Feature API (Demo)",
   "main": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "build": "wp-scripts build",
+    "lint": "wp-scripts lint-js",
     "format": "wp-scripts format",
-    "lint:css": "wp-scripts lint-style",
-    "lint:js": "wp-scripts lint-js",
-    "packages-update": "wp-scripts packages-update",
-    "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start",
-    "clean": "rm -rf build tsconfig.tsbuildinfo"
+    "clean": "rimraf build tsconfig.tsbuildinfo",
+    "prepare": "npm run build"
   },
-  "keywords": ["wordpress","api","features","llm","ai","agent"],
+  "keywords": [
+    "wordpress",
+    "api",
+    "features",
+    "llm",
+    "ai",
+    "agent",
+    "demo"
+  ],
   "author": "Automattic",
   "license": "GPL-2.0-or-later",
   "dependencies": {
-    "@automattic/wp-feature-api": "^0.1.8",
+    "@automattic/wp-feature-api": "*",
     "@wordpress/api-fetch": "^7.37.0",
     "@wordpress/components": "^31.0.0",
     "@wordpress/data": "^10.37.0",
@@ -31,6 +38,17 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.3",
-    "@wordpress/scripts": "^31.2.0"
+    "@wordpress/scripts": "^31.2.0",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Automattic/wp-feature-api.git",
+    "directory": "demo/wp-feature-api-agent"
   }
 }
+
