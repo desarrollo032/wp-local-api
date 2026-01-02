@@ -1,0 +1,49 @@
+name: Attach Release Assets on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  attach-assets:
+    name: Build and attach release assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure scripts executable
+        run: chmod +x scripts/*.sh || true
+
+      - name: Build release assets
+        run: |
+          ./scripts/make-local-release.sh
+
+      - name: List generated files
+        run: ls -lah release || true
+
+      - name: Upload assets to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=${{ github.ref_name }}
+          FILES=""
+          for f in release/wp-feature-api.zip release/wp-feature-api.zip.sha256 release/wp-feature-api-agent.zip release/wp-feature-api-agent.zip.sha256; do
+            if [ -f "$f" ]; then
+              FILES="$FILES $f"
+            fi
+          done
+
+          if [ -z "$FILES" ]; then
+            echo "No release files found to upload" >&2
+            exit 1
+          fi
+
+          # Use gh CLI to upload (runner includes gh). --clobber replaces existing assets.
+          gh release upload "$TAG" $FILES --clobber
