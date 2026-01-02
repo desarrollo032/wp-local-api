@@ -1,41 +1,123 @@
-# Plan de Implementación
+# TODO - Integración wordpress-mcp con Chat de IA
 
-## Objetivo
-Habilitar la configuración de API tokens (OpenAI y OpenRouter) y el chat de IA inmediatamente después de instalar el plugin, sin necesidad de configuración manual.
+## Estado General
+- **Inicio:** Completado
+- **Objetivo:** Integrar detección y uso del plugin wordpress-mcp
 
-## Problema Identificado
-- El plugin demo (`wp-feature-api-agent/`) contiene toda la funcionalidad necesaria
-- Pero NO se cargaba automáticamente - requería definir `WP_FEATURE_API_LOAD_DEMO` en wp-config.php
+---
 
-## Solución Implementada ✅
+## Fase 1: Backend PHP - Detección de MCP ✅ COMPLETADO
 
-### 1. Modificar `wp-feature-api.php`
-- ~~Cambiar `WP_FEATURE_API_LOAD_DEMO` de `false` a `true` por defecto~~
-- ~~Esto cargará automáticamente el plugin demo con:~~
-  - ~~Página de configuración de API tokens~~
-  - ~~Chat de IA en el footer del admin~~
+### 1.1 Añadir endpoints REST para detección MCP
+- [x] `demo/wp-feature-api-agent/includes/class-wp-ai-api-proxy.php`
+  - [x] Añadir endpoint `/mcp/status` para verificar si MCP está activo
+  - [x] Añadir endpoint `/mcp/tools` para obtener herramientas disponibles
+  - [x] Implementar método `mcp_status_check()`
+  - [x] Implementar método `mcp_tools_list()`
 
-### 2. Archivos Modificados
-1. `wp-feature-api.php` - Cambiado `WP_FEATURE_API_LOAD_DEMO` a `true`
-2. `release/wp-feature-api/wp-feature-api.php` - Cambiado `WP_FEATURE_API_LOAD_DEMO` a `true`
+---
 
-## Estado de Tareas
-- [x] Analizar estructura del proyecto
-- [x] Identificar el problema
-- [x] Crear plan de implementación
-- [x] Modificar wp-feature-api.php para cargar demo por defecto
-- [x] Modificar release/wp-feature-api/wp-feature-api.php
-- [ ] Verificar que el chat se muestra correctamente
-- [ ] Probar la funcionalidad
+## Fase 2: Frontend TypeScript - Proveedor MCP ✅ COMPLETADO
 
-## Después de Instalar el Plugin
-1. Activar el plugin "WordPress Feature API"
-2. Ir a "Configuración" → "WP Feature Agent Demo" para configurar API keys
-3. El chat de IA aparecerá en el footer del admin
+### 2.1 Crear proveedor MCP
+- [x] `demo/wp-feature-api-agent/src/agent/mcp-tool-provider.ts`
+  - [x] Crear interfaz `McpToolProvider`
+  - [x] Implementar método `getTools()` que consulta endpoint REST
+  - [x] Manejar errores cuando MCP no está disponible
 
-## Desactivar el Demo (Opcional)
-Si no quieres el chat y configuración automática, añade esto en wp-config.php:
-```php
-define( 'WP_FEATURE_API_LOAD_DEMO', false );
-```
+### 2.2 Integrar con ConversationProvider
+- [x] `demo/wp-feature-api-agent/src/context/ConversationProvider.tsx`
+  - [x] Añadir estado `mcpStatus`
+  - [x] Añadir verificación MCP en useEffect
+  - [x] Registrar `McpToolProvider` junto con `WpFeatureToolProvider`
+
+---
+
+## Fase 3: Frontend TypeScript - UI ✅ COMPLETADO
+
+### 3.1 Crear indicador visual
+- [x] `demo/wp-feature-api-agent/src/components/McpStatusIndicator.tsx`
+  - [x] Crear componente con icono de estado
+  - [x] Añadir tooltip con información
+  - [x] Implementar colores según estado (verde/gris)
+
+### 3.2 Integrar en ChatApp
+- [x] `demo/wp-feature-api-agent/src/components/ChatApp.tsx`
+  - [x] Importar y añadir `McpStatusIndicator`
+  - [x] Posicionar en el header del chat
+
+### 3.3 Añadir estilos
+- [x] `demo/wp-feature-api-agent/src/style.scss`
+  - [x] Estilos para el indicador MCP
+  - [x] Animaciones y transiciones
+
+---
+
+## Fase 4: System Prompt ✅ COMPLETADO
+
+### 4.1 Actualizar prompt del sistema
+- [x] `demo/wp-feature-api-agent/src/agent/system-prompt.ts`
+  - [x] Añadir sección sobre capacidades MCP
+  - [x] Incluir lógica condicional según estado MCP
+  - [x] Documentar herramientas disponibles cuando MCP está activo
+
+---
+
+## Fase 5: Documentación 📋 PENDIENTE
+
+### 5.1 Actualizar documentación existente
+- [ ] `docs/10.protocolo-mcp.md`
+  - [ ] Añadir referencia a integración con chat
+  - [ ] Documentar endpoint de detección
+  - [ ] Añadir guía de configuración
+
+### 5.2 Actualizar README del demo
+- [ ] `demo/wp-feature-api-agent/README.md`
+  - [ ] Documentar funcionalidad MCP
+  - [ ] Añadir screenshots del indicador
+  - [ ] Incluir sección de troubleshooting
+
+---
+
+## Fase 6: Construcción y Pruebas 📋 PENDIENTE
+
+### 6.1 Construcción
+- [ ] Ejecutar `npm run build`
+- [ ] Verificar que no hay errores de TypeScript
+- [ ] Verificar que el build se genera correctamente
+
+### 6.2 Pruebas
+- [ ] Probar en entorno WordPress local
+- [ ] Verificar detección de MCP cuando está activo
+- [ ] Verificar comportamiento cuando MCP NO está activo
+- [ ] Probar ejecución de herramientas MCP
+
+---
+
+## Archivos Creados
+
+| Archivo | Estado |
+|---------|--------|
+| `PLAN_MCP_INTEGRATION.md` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/agent/mcp-tool-provider.ts` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/components/McpStatusIndicator.tsx` | ✅ Completado |
+
+## Archivos Modificados
+
+| Archivo | Estado |
+|---------|--------|
+| `demo/wp-feature-api-agent/includes/class-wp-ai-api-proxy.php` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/context/ConversationProvider.tsx` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/agent/system-prompt.ts` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/components/ChatApp.tsx` | ✅ Completado |
+| `demo/wp-feature-api-agent/src/style.scss` | ✅ Completado |
+
+---
+
+## Próximos Pasos
+
+1. **Construir el proyecto** - Verificar que no hay errores
+2. **Probar en entorno local** - Verificar funcionamiento
+3. **Actualizar documentación** - Completar docs
+4. **Crear release** - Generar nueva versión del plugin
 

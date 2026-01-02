@@ -65,7 +65,46 @@ El agente de IA puede:
 
 ---
 
-## 📋 Requisitos
+## 🔌 Integración con wordpress-mcp
+
+El agente de IA incluye integración automática con el plugin `wordpress-mcp`.
+
+### Detección Automática
+
+El chat muestra un indicador de estado en el header:
+
+| Icono | Estado |
+|-------|--------|
+| 🟢 Verde pulsante | MCP conectado - Puedes ejecutar acciones automáticamente |
+| ⚪ Gris | MCP inactivo - El agente generará instrucciones manuales |
+
+### Instalación de wordpress-mcp
+
+1. Instala el plugin [wordpress-mcp](https://github.com/desarrollo032/wordpress-mcp)
+2. Actívalo en tu sitio WordPress
+3. El agente detectará automáticamente la conexión
+
+### Capacidades con MCP
+
+Cuando `wordpress-mcp` está activo, el agente puede:
+
+- ✅ Crear, editar y eliminar publicaciones y páginas
+- ✅ Gestionar usuarios y roles
+- ✅ Trabajar con medios (subidas, eliminaciones)
+- ✅ Modificar opciones y configuraciones del sitio
+- ✅ Crear y gestionar menús y navegación
+
+### Sin MCP
+
+Si `wordpress-mcp` no está instalado, el agente:
+
+- 📝 Generará instrucciones paso a paso
+- 💬 Proporcionará guías detalladas
+- ✂️ Sugerirá contenido para copiar y aplicar manualmente
+
+---
+
+## 🔧 Solución de Problemas
 
 - WordPress instalado y configurado
 - Plugin "WordPress Feature API" activado

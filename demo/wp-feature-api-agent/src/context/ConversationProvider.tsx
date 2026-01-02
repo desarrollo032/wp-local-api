@@ -23,6 +23,14 @@ import type { Message } from '../types/messages';
 import { createAgent, type Agent, type ApiClient } from '../agent/orchestrator';
 import { createToolExecutor, type ToolExecutor } from '../agent/tool-executor';
 import { createWpFeatureToolProvider } from '../agent/wp-feature-tool-provider';
+import { createMcpToolProvider } from '../agent/mcp-tool-provider';
+
+export interface McpStatus {
+	is_active: boolean;
+	tools_count: number;
+	version?: string;
+	status: 'connected' | 'inactive' | 'error';
+}
 
 export interface ConversationContextType {
 	messages: Message[];
@@ -34,6 +42,7 @@ export interface ConversationContextType {
 	models: Array< { id: string; owned_by?: string; raw?: any } >;
 	selectedModel: string | null;
 	setSelectedModel: ( modelId: string ) => void;
+	mcpStatus: McpStatus;
 }
 
 export const ConversationContext =
@@ -77,6 +86,11 @@ export const ConversationProvider = ( {
 	>( {} );
 	const [ models, setModels ] = useState< Array< { id: string; owned_by?: string; raw?: any } > >( [] );
 	const [ selectedModel, setSelectedModel ] = useState< string | null >( null );
+	const [ mcpStatus, setMcpStatus ] = useState< McpStatus >( () => ( {
+		is_active: false,
+		tools_count: 0,
+		status: 'inactive',
+	} ) );
 	const isInitializing = useRef( false );
 
 	useEffect( () => {
@@ -91,11 +105,13 @@ export const ConversationProvider = ( {
 		}
 		isInitializing.current = true;
 
-		const initializeExecutor = async () => {
+	const initializeExecutor = async () => {
 			const executor = createToolExecutor();
 			const provider = createWpFeatureToolProvider();
+			const mcpProvider = createMcpToolProvider();
 			try {
 				await executor.addProvider( provider );
+				await executor.addProvider( mcpProvider );
 
 				// Build hash-to-feature-name map, so we can display the feature name in the UI.
 				const tools = await Promise.resolve( provider.getTools() );
@@ -113,6 +129,21 @@ export const ConversationProvider = ( {
 		};
 
 		initializeExecutor();
+
+		// Fetch MCP status
+		(async () => {
+			try {
+				const apiFetch = ( window as any ).wp?.apiFetch;
+				if ( ! apiFetch ) {
+					return;
+				}
+				const resp = await apiFetch( { path: '/wp/v2/ai-api-proxy/v1/mcp/status' } );
+				setMcpStatus( resp );
+			} catch ( e ) {
+				// eslint-disable-next-line no-console
+				console.log( 'MCP not available:', e );
+			}
+		})();
 
 		// Fetch available models from the proxy
 		(async () => {
@@ -220,6 +251,7 @@ export const ConversationProvider = ( {
 			models,
 			selectedModel,
 			setSelectedModel,
+			mcpStatus,
 		} ),
 		[
 			messages,
@@ -231,6 +263,7 @@ export const ConversationProvider = ( {
 			models,
 			selectedModel,
 			setSelectedModel,
+			mcpStatus,
 		]
 	);
 

@@ -15,9 +15,10 @@ import {
 	AssistantMessage,
 	PendingAssistantMessage,
 } from './ChatMessage';
+import { McpStatusIndicator } from './McpStatusIndicator';
 
 export const ChatApp = () => {
-	const { messages, sendMessage, isLoading, clearConversation, models, selectedModel, setSelectedModel } = useConversation();
+	const { messages, sendMessage, isLoading, clearConversation, models, selectedModel, setSelectedModel, mcpStatus } = useConversation();
 	const [ input, setInput ] = useState( '' );
 	const [ isMinimized, setIsMinimized ] = useState( false );
 	const messagesEndRef = useRef< HTMLDivElement | null >( null );
@@ -62,6 +63,7 @@ export const ChatApp = () => {
 					</div>
 				) }
 				<div className="chat-header-actions">
+					<McpStatusIndicator status={ mcpStatus } />
 					<Button
 						onClick={ clearConversation }
 						label="Clear Conversation"
