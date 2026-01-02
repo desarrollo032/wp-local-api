@@ -1,10 +1,40 @@
 /**
  * WordPress dependencies
  */
-import type { StoreDescriptor } from '@wordpress/data';
+import type { store as coreStore } from '@wordpress/core-data';
+import type { store as featureStore } from './store';
 
-type SelectFunction = ( storeName: string | StoreDescriptor ) => any;
-type DispatchFunction = ( storeName: string | StoreDescriptor ) => any;
+/**
+ * Internal dependencies
+ */
+
+/**
+ * Type definition for the WordPress registry
+ */
+type RegistryDispatch = {
+	dispatch: ( storeName: any ) => any;
+	select: ( storeName: any ) => any;
+};
+
+/**
+ * Type for the context passed to feature callbacks
+ */
+type FeatureCallbackContext = {
+	data: {
+		dispatch: ( storeName: any ) => any;
+		select: ( storeName: any ) => any;
+	};
+};
+
+/**
+ * Select function type for WordPress stores
+ */
+type SelectFunction = ( storeName: string | any ) => any;
+
+/**
+ * Dispatch function type for WordPress stores
+ */
+type DispatchFunction = ( storeName: string | any ) => any;
 
 export interface Feature {
 	id: string;
@@ -20,9 +50,7 @@ export interface Feature {
 	is_eligible?: () => boolean;
 	callback?: (
 		args: any,
-		context: {
-			data: { dispatch: DispatchFunction; select: SelectFunction };
-		}
+		context: FeatureCallbackContext
 	) => unknown | Promise< unknown >;
 }
 
@@ -36,3 +64,4 @@ export interface FeaturesState {
 declare global {
 	const ajaxurl: string | undefined;
 }
+

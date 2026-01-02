@@ -33,13 +33,13 @@ export default function InputModal( { featureId }: InputModalProps ) {
 	const registry = useRegistry();
 	const [ formData, setFormData ] = useState< Record< string, any > >( {} );
 	const setFeatureInputInProgress =
-		useDispatch( store ).setFeatureInputInProgress;
+		useDispatch( store as any ).setFeatureInputInProgress;
 	// Ref for the container of inputs
 	const inputContainerRef = useRef< HTMLDivElement >( null );
 
 	const feature = useSelect(
-		( select ) => {
-			return select( store ).getRegisteredFeature( featureId );
+		( _select: any ) => {
+			return ( _select( store as any ) ).getRegisteredFeature( featureId );
 		},
 		[ featureId ]
 	);
@@ -84,9 +84,11 @@ export default function InputModal( { featureId }: InputModalProps ) {
 	};
 
 	const handleSubmit = () => {
+		// Get dispatch and select from registry for the callback context
+		const { dispatch: registryDispatch, select: registrySelect } = registry as any;
+		
 		feature?.callback?.( formData, {
-			// @ts-ignore
-			data: { dispatch: registry.dispatch, select: registry.select },
+			data: { dispatch: registryDispatch, select: registrySelect },
 		} );
 		setFeatureInputInProgress( null );
 	};
@@ -129,9 +131,9 @@ export default function InputModal( { featureId }: InputModalProps ) {
 				);
 			case 'url':
 				return (
-					<div>
+					<div key={ key }>
 						<URLInput
-							// @ts-ignore
+							// @ts-ignore - URLInput types may not be fully compatible
 							label={ key }
 							value={ formData[ key ] || '' }
 							onChange={ ( value ) =>
@@ -183,3 +185,4 @@ export default function InputModal( { featureId }: InputModalProps ) {
 		</Modal>
 	);
 }
+

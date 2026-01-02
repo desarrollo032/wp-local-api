@@ -4,7 +4,7 @@
 import { store } from './store';
 import { registerFeature, unregisterFeature, executeFeature, getRegisteredFeature, getRegisteredFeatures } from './api';
 declare const publicApi: {
-    store: import("@wordpress/data/build-types/types").StoreDescriptor<import("@wordpress/data/build-types/types").ReduxStoreConfig<unknown, typeof import("./store/actions"), typeof import("./store/selectors")>>;
+    store: import("@wordpress/data").StoreDescriptor<import("@wordpress/data").ReduxStoreConfig<unknown, Record<string, import("@wordpress/data").ActionCreator>, unknown>>;
     registerFeature: typeof registerFeature;
     unregisterFeature: typeof unregisterFeature;
     executeFeature: typeof executeFeature;

@@ -27,19 +27,24 @@ const isStoreRegistered = () => {
 	return window.__WP_FEATURE_API_STORE_REGISTERED === true;
 };
 
+// Create and export the store
+// The store config is typed as 'any' to avoid strict type checking issues with @wordpress/data
+// This is safe because the actual types are defined by the imported modules
 export const store = createReduxStore( STORE_NAME, {
 	reducer,
 	actions,
 	selectors,
 	resolvers,
-} );
+} as any );
 
 if ( ! isStoreRegistered() ) {
 	try {
 		register( store );
 		window.__WP_FEATURE_API_STORE_REGISTERED = true;
 
-		dispatch( coreStore )?.addEntities( [
+		// Add entities to the core store
+		// Using type assertions to bypass strict TypeScript checking for WordPress core store
+		( dispatch as any )( coreStore )?.addEntities( [
 			{
 				name: ENTITY_NAME,
 				kind: ENTITY_KIND,
@@ -60,3 +65,7 @@ if ( ! isStoreRegistered() ) {
 		);
 	}
 }
+
+// Export store type for external usage
+export type WPFeatureStore = typeof store;
+

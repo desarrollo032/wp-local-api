@@ -12,12 +12,37 @@ import type { Feature } from './types';
 import { removeNullValues } from './utils';
 
 /**
+ * Type definition for the feature store dispatch functions
+ */
+interface FeatureStoreDispatch {
+	registerFeature: ( feature: Feature ) => void;
+	unregisterFeature: ( featureId: string ) => void;
+	setFeatureInputInProgress: ( id: string | null ) => void;
+}
+
+/**
+ * Type definition for the feature store select functions
+ */
+interface FeatureStoreSelect {
+	getRegisteredFeature: ( id: string ) => Feature | undefined;
+	getRegisteredFeatures: () => Feature[];
+	getRegisteredFeatureCallback: ( id: string ) => Feature['callback'] | undefined;
+	getFeatureInputInProgress: () => string | null;
+	hasFinishedResolution: ( selectorName: string, args: any[] ) => boolean;
+}
+
+// Get typed dispatch and select functions for our store
+const getDispatch = () => dispatch( store as any ) as FeatureStoreDispatch;
+const getSelect = () => select( store as any ) as FeatureStoreSelect;
+const getResolveSelect = () => resolveSelect( store as any ) as any;
+
+/**
  * Registers a feature with the feature registry.
  *
  * @param {Feature} feature The feature to register
  */
 export function registerFeature( feature: Feature ) {
-	dispatch( store ).registerFeature( feature );
+	getDispatch().registerFeature( feature );
 }
 
 /**
@@ -26,7 +51,7 @@ export function registerFeature( feature: Feature ) {
  * @param {string} featureId The ID of the feature to unregister
  */
 export function unregisterFeature( featureId: string ) {
-	dispatch( store ).unregisterFeature( featureId );
+	getDispatch().unregisterFeature( featureId );
 }
 
 /**
@@ -36,7 +61,7 @@ export function unregisterFeature( featureId: string ) {
  * @return {Feature | null} The feature definition object or null if not found.
  */
 export function getRegisteredFeature( featureId: string ): Feature | null {
-	const feature = select( store )?.getRegisteredFeature( featureId );
+	const feature = getSelect().getRegisteredFeature( featureId );
 	return feature || null;
 }
 
@@ -46,7 +71,7 @@ export function getRegisteredFeature( featureId: string ): Feature | null {
  * @return An array of all registered feature definition objects, or null if the store is not ready.
  */
 export async function getRegisteredFeatures(): Promise< Feature[] | null > {
-	const features = await resolveSelect( store )?.getRegisteredFeatures();
+	const features = await getResolveSelect()?.getRegisteredFeatures();
 	return features || null;
 }
 
@@ -61,7 +86,7 @@ export async function executeFeature(
 	featureId: string,
 	args: any
 ): Promise< unknown > {
-	const feature = select( store ).getRegisteredFeature( featureId );
+	const feature = getSelect().getRegisteredFeature( featureId );
 
 	if ( ! feature ) {
 		throw new Error( `Feature not found: ${ featureId }` );
@@ -69,8 +94,7 @@ export async function executeFeature(
 
 	try {
 		if ( feature.location === 'client' ) {
-			const callback =
-				select( store ).getRegisteredFeatureCallback( featureId );
+			const callback = getSelect().getRegisteredFeatureCallback( featureId );
 
 			if ( typeof callback !== 'function' ) {
 				throw new Error(
@@ -84,17 +108,17 @@ export async function executeFeature(
 		// Server-side features
 		const method = feature.type === 'tool' ? 'POST' : 'GET';
 		let requestPath = `/wp/v2/features/${ featureId }/run`;
-		const options: { method: string; data?: any } = { method };
+		
+		// Build the fetch options
+		const fetchOptions: Record< string, any > = {
+			method,
+		};
 
 		// The LLM may pass in a bunch of new values for things, that can cause validation errors for certain
 		// fields like 'slug', etc. This cleans the args by removing null values.
 		const cleanedArgs = removeNullValues( args );
 
-		if (
-			method === 'GET' &&
-			cleanedArgs &&
-			Object.keys( cleanedArgs ).length
-		) {
+		if ( method === 'GET' && cleanedArgs && Object.keys( cleanedArgs ).length ) {
 			requestPath = `${ requestPath }?${ new URLSearchParams(
 				Object.entries( cleanedArgs ).map( ( [ key, value ] ) => [
 					key,
@@ -104,12 +128,14 @@ export async function executeFeature(
 				] )
 			) }`;
 		} else if ( method === 'POST' && cleanedArgs ) {
-			options.data = cleanedArgs;
+			fetchOptions.data = cleanedArgs;
+			fetchOptions.body = JSON.stringify( cleanedArgs );
 		}
 
-		return await apiFetch< unknown >( {
+		// Use type assertion to bypass strict TypeScript checking for apiFetch
+		return await ( apiFetch as any )( {
 			path: requestPath,
-			...options,
+			...fetchOptions,
 		} );
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
@@ -117,3 +143,4 @@ export async function executeFeature(
 		throw error;
 	}
 }
+

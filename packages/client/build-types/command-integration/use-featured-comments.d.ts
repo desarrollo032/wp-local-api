@@ -10,14 +10,14 @@
  *                   { commands: Array<object>, isLoading: boolean }
  */
 declare function useFeatureCommands({ search }: {
-    search: any;
+    search?: string;
 }): {
     commands: {
         name: string;
         label: string;
         icon: any;
         callback: ({ close }: {
-            close: any;
+            close: () => void;
         }) => void;
     }[];
     isLoading: boolean;
