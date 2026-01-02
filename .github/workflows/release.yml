@@ -1,147 +1,64 @@
-name: Release WordPress Plugin
+name: Release Plugin
 
-# =============================================================================
-# TRIGGER: Se ejecuta automáticamente en push/merge a la rama main
-# =============================================================================
 on:
   push:
-    branches:
-      - main
-    # Solo ejecutar si hay cambios en archivos relevantes del plugin
-    paths:
-      - 'wp-feature-api.php'
-      - 'includes/**/*.php'
-      - '!vendor/**'
-      - '!node_modules/**'
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
   packages: read
 
-env:
-  PLUGIN_MAIN_FILE: wp-feature-api.php
-  PLUGIN_SLUG: wp-feature-api
-
 jobs:
-  # ===========================================================================
-  # JOB: Release - Compila, crea ZIP y publica en GitHub Releases
-  # ===========================================================================
   release:
-    name: Create Release
-    runs-on: ubuntu-latest
+    name: Create Release v${{ github.ref_name }}
+    runs-on: ubuntu-22.04
 
     steps:
-      # =======================================================================
-      # STEP 1: Checkout del repositorio
-      # =======================================================================
-      - name: Checkout repository
+      # Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Necesario para generar changelog desde tags
+          fetch-depth: 0
 
-      # =======================================================================
-      # STEP 2: Configurar Git (necesario para crear tags localmente)
-      # =======================================================================
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      # Setup Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      # =======================================================================
-      # STEP 3: Extraer versión del archivo principal del plugin
-      # =======================================================================
-      - name: Extract plugin version
+      # Setup PHP
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      # Get version from tag
+      - name: Extract version
         id: version
         run: |
-          # Extraer la versión desde la cabecera del plugin PHP
-          VERSION=$(grep -m 1 "Version:" "${{ env.PLUGIN_MAIN_FILE }}" | sed 's/.*Version: *//' | tr -d ' \r\n')
-          
-          # Validar que la versión no esté vacía
-          if [ -z "$VERSION" ]; then
-            echo "Error: No se pudo extraer la versión de ${{ env.PLUGIN_MAIN_FILE }}"
-            exit 1
-          fi
-          
-          echo "Versión extraída: $VERSION"
+          VERSION=${GITHUB_REF_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # =======================================================================
-      # STEP 4: Verificar si el tag ya existe (evitar duplicados)
-      # =======================================================================
-      - name: Check if tag exists
-        id: tag_check
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "Tag v${{ steps.version.outputs.version }} ya existe. Cancelando release."
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      # =======================================================================
-      # STEP 5: Instalar dependencias (si el plugin las necesita)
-      # =======================================================================
+      # Install dependencies
       - name: Install dependencies
-        if: runner.os == 'Linux' && file composer.json 2>/dev/null | grep -q JSON
         run: |
-          if [ -f "composer.json" ]; then
-            composer install --no-dev --optimize-autoloader --no-interaction
-          fi
-        shell: bash
+          npm install --legacy-peer-deps
+          composer install --no-dev --prefer-dist --no-interaction
 
-      - name: Install npm dependencies
-        if: runner.os == 'Linux' && file package.json 2>/dev/null | grep -q JSON
-        run: |
-          if [ -f "package.json" ]; then
-            npm ci --legacy-peer-deps
-          fi
-        shell: bash
-
-      # =======================================================================
-      # STEP 6: Construir assets (si hay build script)
-      # =======================================================================
-      - name: Build assets
-        if: runner.os == 'Linux' && [ -f "package.json" ] && grep -q '"build"' package.json
+      # Build plugin
+      - name: Build plugin
         run: npm run build
-        shell: bash
 
-      # =======================================================================
-      # STEP 7: Generar changelog desde el último tag
-      # =======================================================================
-      - name: Generate changelog
-        id: changelog
+      # Prepare plugin packages
+      - name: Prepare plugin packages
         run: |
-          # Obtener el tag anterior (último tag semver antes del actual)
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
-          if [ -z "$LAST_TAG" ]; then
-            # Si no hay tags anteriores, usar primer commit
-            CHANGELOG=$(git log --oneline --format="* %s" -n 20)
-            echo "_no_previous_tag=true" >> $GITHUB_OUTPUT
-          else
-            # Generar changelog desde el último tag
-            CHANGELOG=$(git log "$LAST_TAG"..HEAD --oneline --format="* %s")
-            
-            # Si no hay cambios desde el último tag
-            if [ -z "$CHANGELOG" ]; then
-              echo "No hay cambios desde $LAST_TAG"
-              CHANGELOG="* Sin cambios significativos"
-            fi
-            echo "_last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
-          fi
-          
-          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+          mkdir -p release/wp-feature-api
+          mkdir -p release/wp-feature-api-agent
 
-      # =======================================================================
-      # STEP 8: Crear directorio temporal y preparar archivos
-      # =======================================================================
-      - name: Prepare plugin files
-        run: |
-          PLUGIN_SLUG="${{ env.PLUGIN_SLUG }}"
-          mkdir -p "$PLUGIN_SLUG"
-          
-          # Copiar archivos del plugin al directorio temporal
-          # Excluir: .git, .github, node_modules, vendor, archivos de desarrollo
+          # Copiar plugin principal (excluyendo archivos de desarrollo)
           rsync -av \
             --exclude='.git' \
             --exclude='.github' \
@@ -167,104 +84,98 @@ jobs:
             --exclude='packages/*/node_modules' \
             --exclude='packages/*/tsconfig*.json' \
             --exclude='packages/*/webpack.config.js' \
-            . "$PLUGIN_SLUG/"
-          
-          echo "Archivos preparados en $PLUGIN_SLUG/"
-          ls -la "$PLUGIN_SLUG/"
+            . release/wp-feature-api/
 
-      # =======================================================================
-      # STEP 9: Crear archivo ZIP del plugin
-      # =======================================================================
-      - name: Create plugin ZIP
+          # Copiar demo agent plugin
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='build/' \
+            --exclude='*.map' \
+            --exclude='.gitignore' \
+            demo/wp-feature-api-agent/ release/wp-feature-api-agent/
+
+      # Create ZIP files
+      - name: Create ZIP files
         run: |
-          PLUGIN_SLUG="${{ env.PLUGIN_SLUG }}"
-          VERSION="${{ steps.version.outputs.version }}"
-          
-          # Crear ZIP sin directorio padre (flat)
-          cd "$PLUGIN_SLUG"
-          zip -r "../$PLUGIN_SLUG-$VERSION.zip" .
-          
-          cd ..
-          echo "ZIP creado: $PLUGIN_SLUG-$VERSION.zip"
-          ls -lh "$PLUGIN_SLUG-$VERSION.zip"
+          cd release
+          zip -r wp-feature-api.zip wp-feature-api
+          zip -r wp-feature-api-agent.zip wp-feature-api-agent
+          sha256sum wp-feature-api.zip > wp-feature-api.zip.sha256
+          sha256sum wp-feature-api-agent.zip > wp-feature-api-agent.zip.sha256
 
-      # =======================================================================
-      # STEP 10: Cancelar si el tag ya existe
-      # =======================================================================
-      - name: Cancel if tag exists
-        if: steps.tag_check.outputs.exists == 'true'
+      # Generate changelog
+      - name: Generate changelog
+        id: changelog
         run: |
-          echo "El release ha sido cancelado porque el tag ya existe."
-          exit 78  # Código de salida especial para cancelar workflow
+          PREV_TAG=v0.1.7
+          CURRENT_TAG=v${{ steps.version.outputs.version }}
+          
+          # Generate changelog with contributors
+          CHANGELOG=$(git log $PREV_TAG..$CURRENT_TAG --pretty=format:'* %s by @%an' --reverse)
+          
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="* No changes from previous version"
+          fi
+          
+          # Add header
+          echo "# Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## $CURRENT_TAG" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "$CHANGELOG" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "*Full changelog:* https://github.com/${{ github.repository }}/compare/$PREV_TAG...$CURRENT_TAG" >> CHANGELOG.md
+          
+          echo "changelog=$(cat CHANGELOG.md)" >> $GITHUB_OUTPUT
 
-      # =======================================================================
-      # STEP 11: Crear y pushear el tag Git
-      # =======================================================================
-      - name: Create Git tag
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG_NAME="v$VERSION"
-          
-          # Crear tag anotado con metadatos
-          CHANGELOG=$(git log --oneline --format="* %s" -n 10)
-          
-          git tag -a "$TAG_NAME" -m "Release $VERSION" -m "" -m "Changes:" -m "$CHANGELOG"
-          
-          # Verificar tag creado
-          echo "Tag creado: $TAG_NAME"
-          git tag -l | grep "$VERSION"
-          
-          # Pushear tag a remoto (usando token de GitHub)
-          git push origin "$TAG_NAME" || echo "El tag ya existe en remoto"
-
-      # =======================================================================
-      # STEP 12: Crear GitHub Release
-      # =======================================================================
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Publish GitHub Release
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          release_name: Release ${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
           body: |
-            ## Changes from previous version
-            
+            ## 📦 Release v${{ steps.version.outputs.version }}
+
+            ### Changelog
+
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ---
             
-            **Full Chelog:** [Compare versions](https://github.com/${{ github.repository }}/compare/v${{ steps.chelog.outputs._last_tag || '0.0.0' }}...v${{ steps.version.outputs.version }})
-            
-            **Assets:**
-            - `${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip` - Plugin ready for installation
-          draft: false
-          prerelease: false
+            ### 📥 Assets
 
-      # =======================================================================
-      # STEP 13: Subir el ZIP como asset del release
-      # =======================================================================
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+            | File | SHA256 |
+            |------|--------|
+            | wp-feature-api.zip | $(cat release/wp-feature-api.zip.sha256) |
+            | wp-feature-api-agent.zip | $(cat release/wp-feature-api-agent.zip.sha256) |
+
+            ### 👥 Contributors
+
+            <!-- CONTRIBUTORS_START -->
+            ${{ github.actor }}
+            <!-- CONTRIBUTORS_END -->
+          files: |
+            release/wp-feature-api.zip
+            release/wp-feature-api-agent.zip
+            release/wp-feature-api.zip.sha256
+            release/wp-feature-api-agent.zip.sha256
+            release/CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip
-          asset_name: ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip
-          asset_content_type: application/zip
 
-      # =======================================================================
-      # STEP 14: Mostrar resumen final
-      # =======================================================================
       - name: Summary
         run: |
-          echo "## ✅ Release completado exitosamente"
+          echo "## ✅ Release v${{ steps.version.outputs.version }} publicado exitosamente"
           echo ""
-          echo "**Versión:** ${{ steps.version.outputs.version }}"
-          echo "**Tag:** v${{ steps.version.outputs.version }}"
-          echo "**ZIP:** ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip"
+          echo "**Assets generados:**"
+          ls -lh release/
           echo ""
-          echo "El release está disponible en: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+          echo "**Próximos pasos:**"
+          echo "1. Ve a https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+          echo "2. Edita el release para añadir más detalles si es necesario"
+          echo "3. Comparte el release con la comunidad"
 
