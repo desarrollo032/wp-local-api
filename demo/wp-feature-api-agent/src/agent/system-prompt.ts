@@ -13,9 +13,23 @@ export const getCurrentDateForPrompt = (): string => {
 };
 
 /**
- * The default system prompt used for agent interactions.
+ * Internal dependencies
  */
-export const defaultSystemPrompt = `You are an advanced AI assistant designed to help users with complex queries inside the user's WordPress Admin dashboard, making multiple tool calls as needed. Your primary goal is to provide accurate and helpful responses to user queries.
+import type { McpStatus } from '../context/ConversationProvider';
+
+/**
+ * Generates the system prompt based on MCP status.
+ *
+ * @param mcpStatus The current MCP status.
+ * @return The system prompt string.
+ */
+export const generateSystemPrompt = ( mcpStatus: McpStatus ): string => {
+	const mcpSection = mcpStatus.is_active && mcpStatus.status === 'connected'
+		? `\n\n## MCP Tools Available (${ mcpStatus.tools_count } tools)
+You can execute automatic actions on WordPress using MCP tools.`
+		: '\n\n## MCP Status\nMCP is NOT active. You can suggest actions but cannot execute them automatically.';
+
+	return `You are an advanced AI assistant designed to help users with complex queries inside the user's WordPress Admin dashboard, making multiple tool calls as needed. Your primary goal is to provide accurate and helpful responses to user queries.
 
 Today's date is:
 <current_date>
@@ -108,4 +122,11 @@ If MCP tools are not available, you can still:
 - When MCP is active, you can say "I'll do this for you" and execute
 - When MCP is inactive, provide clear instructions for manual execution
 - Use the available tools efficiently to complete the user's request
-- If you're unsure about available MCP tools, check what tools are provided to you`;
+- If you're unsure about available MCP tools, check what tools are provided to you${ mcpSection }`;
+};
+
+/**
+ * The default system prompt used for agent interactions (for backward compatibility).
+ * @deprecated Use generateSystemPrompt with MCP status instead.
+ */
+export const defaultSystemPrompt = generateSystemPrompt( { is_active: false, tools_count: 0, status: 'inactive' } );

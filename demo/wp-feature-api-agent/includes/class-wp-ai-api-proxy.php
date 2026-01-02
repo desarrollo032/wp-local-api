@@ -109,6 +109,30 @@ class WP_AI_API_Proxy {
 			)
 		);
 
+		// MCP call endpoint - execute MCP tools
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/mcp/call',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'mcp_call_tool' ),
+				'permission_callback' => array( $this, 'check_permissions' ),
+				'args'                => array(
+					'tool'      => array(
+						'description' => __( 'The MCP tool name to execute.', 'wp-feature-api-agent' ),
+						'type'        => 'string',
+						'required'    => true,
+					),
+					'arguments' => array(
+						'description' => __( 'Arguments for the MCP tool.', 'wp-feature-api-agent' ),
+						'type'        => 'object',
+						'required'    => false,
+						'default'     => array(),
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base . '/(?P<api_path>.*)',
@@ -490,5 +514,79 @@ class WP_AI_API_Proxy {
 				'count' => count( $tools ),
 			)
 		);
+	}
+
+	/**
+	 * Executes an MCP tool.
+	 *
+	 * @param WP_REST_Request $request Incoming request data.
+	 * @return WP_REST_Response Response with tool execution result.
+	 */
+	public function mcp_call_tool( WP_REST_Request $request ) {
+		$tool_name = $request->get_param( 'tool' );
+		$arguments = $request->get_param( 'arguments' ) ?? array();
+
+		if ( empty( $tool_name ) ) {
+			return new WP_REST_Response(
+				array(
+					'error'   => 'Missing tool parameter',
+					'message' => 'Tool name is required',
+				),
+				400
+			);
+		}
+
+		// Check if MCP is active
+		if ( ! class_exists( 'WordPress_MCP' ) ) {
+			return new WP_REST_Response(
+				array(
+					'error'   => 'MCP not active',
+					'message' => 'wordpress-mcp plugin is not active',
+				),
+				503
+			);
+		}
+
+		try {
+			// Try to execute tool using MCP registry
+			if ( function_exists( 'wp_mcp_call_tool' ) ) {
+				$result = wp_mcp_call_tool( $tool_name, $arguments );
+				return new WP_REST_Response(
+					array(
+						'result' => $result,
+						'tool'   => $tool_name,
+					)
+				);
+			} elseif ( class_exists( 'WordPress_MCP\Server' ) ) {
+				// Alternative execution for different MCP versions
+				$server = \WordPress_MCP\Server::get_instance();
+				if ( method_exists( $server, 'call_tool' ) ) {
+					$result = $server->call_tool( $tool_name, $arguments );
+					return new WP_REST_Response(
+						array(
+							'result' => $result,
+							'tool'   => $tool_name,
+						)
+					);
+				}
+			}
+
+			return new WP_REST_Response(
+				array(
+					'error'   => 'Tool execution not supported',
+					'message' => 'MCP tool execution method not found',
+				),
+				501
+			);
+		} catch ( Exception $e ) {
+			return new WP_REST_Response(
+				array(
+					'error'   => 'Tool execution failed',
+					'message' => $e->getMessage(),
+					'tool'    => $tool_name,
+				),
+				500
+			);
+		}
 	}
 }

@@ -174,10 +174,10 @@ export const ConversationProvider = ( {
 
 	const agent: Agent | null = useMemo( () => {
 		if ( toolExecutor ) {
-			return createAgent( { apiClient: wpApiClient, toolExecutor } );
+			return createAgent( { apiClient: wpApiClient, toolExecutor, mcpStatus } );
 		}
 		return null;
-	}, [ toolExecutor ] );
+	}, [ toolExecutor, mcpStatus ] );
 
 	const sendMessage = useCallback(
 		async ( query: string ) => {

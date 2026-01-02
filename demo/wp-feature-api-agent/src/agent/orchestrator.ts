@@ -3,7 +3,8 @@
  */
 import type { Message } from '../types/messages';
 import type { ToolExecutor } from './tool-executor';
-import { defaultSystemPrompt } from './system-prompt';
+import { generateSystemPrompt } from './system-prompt';
+import type { McpStatus } from '../context/ConversationProvider';
 
 /**
  * Defines the shape of the function responsible for making API calls.
@@ -25,6 +26,7 @@ export type ApiClient = (
 export interface AgentDependencies {
 	apiClient: ApiClient;
 	toolExecutor?: ToolExecutor;
+	mcpStatus?: McpStatus;
 }
 
 /**
@@ -52,7 +54,7 @@ export interface Agent {
  * @return An Agent instance.
  */
 export const createAgent = ( deps: AgentDependencies ): Agent => {
-	const { apiClient, toolExecutor } = deps; // Destructure toolExecutor
+	const { apiClient, toolExecutor, mcpStatus } = deps; // Destructure dependencies
 
 	const processQuery = async function* (
 		query: string,
@@ -64,7 +66,7 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 
 		const systemMessage: Message = {
 			role: 'system',
-			content: defaultSystemPrompt,
+			content: generateSystemPrompt( mcpStatus || { is_active: false, tools_count: 0, status: 'inactive' } ),
 		};
 
 		// If the first message in currentMessages is already a system message, don't add another one
