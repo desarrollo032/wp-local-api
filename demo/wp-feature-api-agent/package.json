@@ -1,6 +1,6 @@
 {
   "name": "wp-feature-api-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript AI agent for the WordPress Feature API",
   "main": "build/index.js",
   "scripts": {
@@ -13,31 +13,24 @@
     "start": "wp-scripts start",
     "clean": "rm -rf build tsconfig.tsbuildinfo"
   },
-  "keywords": [
-    "wordpress",
-    "api",
-    "features",
-    "llm",
-    "ai",
-    "agent"
-  ],
+  "keywords": ["wordpress","api","features","llm","ai","agent"],
   "author": "Automattic",
   "license": "GPL-2.0-or-later",
   "dependencies": {
-    "@automattic/wp-feature-api": "*",
-    "@wordpress/api-fetch": "^6.55.0",
-    "@wordpress/components": "^25.16.0",
-    "@wordpress/data": "^10.22.0",
-    "@wordpress/element": "^5.35.0",
-    "@wordpress/i18n": "^4.58.0",
-    "@wordpress/icons": "^10.20.0",
+    "@automattic/wp-feature-api": "^0.1.8",
+    "@wordpress/api-fetch": "^7.37.0",
+    "@wordpress/components": "^31.0.0",
+    "@wordpress/data": "^10.37.0",
+    "@wordpress/element": "^6.37.0",
+    "@wordpress/i18n": "^6.10.0",
+    "@wordpress/icons": "^11.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.20",
-    "@types/react-dom": "^18.3.5",
-    "@wordpress/scripts": "^30.13.0"
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.3",
+    "@wordpress/scripts": "^31.2.0"
   }
 }
