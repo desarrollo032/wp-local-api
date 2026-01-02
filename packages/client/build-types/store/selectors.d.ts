@@ -7,8 +7,8 @@ export declare const getRegisteredFeature: (state: FeaturesState, id: string) =>
 export declare const getRegisteredFeatureCallback: {
     (state: FeaturesState, id: string): (args: any, context: {
         data: {
-            dispatch: (storeName: string | import("@wordpress/data").StoreDescriptor) => any;
-            select: (storeName: string | import("@wordpress/data").StoreDescriptor) => any;
+            dispatch: (storeName: any) => any;
+            select: (storeName: any) => any;
         };
     }) => unknown | Promise<unknown>;
     isRegistrySelector?: boolean;

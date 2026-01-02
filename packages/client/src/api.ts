@@ -31,9 +31,29 @@ interface FeatureStoreSelect {
 	hasFinishedResolution: ( selectorName: string, args: any[] ) => boolean;
 }
 
-// Get typed dispatch and select functions for our store
+/**
+ * Options for apiFetch calls
+ */
+interface ApiFetchOptions {
+	path: string;
+	method?: string;
+	data?: any;
+	body?: string;
+}
+
+/**
+ * Get typed dispatch function for our store
+ */
 const getDispatch = () => dispatch( store as any ) as FeatureStoreDispatch;
+
+/**
+ * Get typed select function for our store
+ */
 const getSelect = () => select( store as any ) as FeatureStoreSelect;
+
+/**
+ * Get typed resolveSelect function for our store
+ */
 const getResolveSelect = () => resolveSelect( store as any ) as any;
 
 /**
@@ -109,17 +129,18 @@ export async function executeFeature(
 		const method = feature.type === 'tool' ? 'POST' : 'GET';
 		let requestPath = `/wp/v2/features/${ featureId }/run`;
 		
-		// Build the fetch options
-		const fetchOptions: Record< string, any > = {
-			method,
-		};
-
 		// The LLM may pass in a bunch of new values for things, that can cause validation errors for certain
 		// fields like 'slug', etc. This cleans the args by removing null values.
 		const cleanedArgs = removeNullValues( args );
 
+		// Build the fetch options with explicit options object
+		const fetchOptions: ApiFetchOptions = {
+			path: requestPath,
+			method,
+		};
+
 		if ( method === 'GET' && cleanedArgs && Object.keys( cleanedArgs ).length ) {
-			requestPath = `${ requestPath }?${ new URLSearchParams(
+			fetchOptions.path = `${ requestPath }?${ new URLSearchParams(
 				Object.entries( cleanedArgs ).map( ( [ key, value ] ) => [
 					key,
 					typeof value === 'object'
@@ -133,10 +154,8 @@ export async function executeFeature(
 		}
 
 		// Use type assertion to bypass strict TypeScript checking for apiFetch
-		return await ( apiFetch as any )( {
-			path: requestPath,
-			...fetchOptions,
-		} );
+		// apiFetch in @wordpress/api-fetch v7.x requires explicit options object
+		return await ( apiFetch as any )( fetchOptions );
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
 		console.error( `Error executing feature ${ featureId }:`, error );

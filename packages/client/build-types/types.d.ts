@@ -1,9 +1,12 @@
 /**
- * WordPress dependencies
+ * Type for the context passed to feature callbacks
  */
-import type { StoreDescriptor } from '@wordpress/data';
-type SelectFunction = (storeName: string | StoreDescriptor) => any;
-type DispatchFunction = (storeName: string | StoreDescriptor) => any;
+type FeatureCallbackContext = {
+    data: {
+        dispatch: (storeName: any) => any;
+        select: (storeName: any) => any;
+    };
+};
 export interface Feature {
     id: string;
     name: string;
@@ -16,12 +19,7 @@ export interface Feature {
     location: 'server' | 'client';
     icon?: any;
     is_eligible?: () => boolean;
-    callback?: (args: any, context: {
-        data: {
-            dispatch: DispatchFunction;
-            select: SelectFunction;
-        };
-    }) => unknown | Promise<unknown>;
+    callback?: (args: any, context: FeatureCallbackContext) => unknown | Promise<unknown>;
 }
 export interface FeaturesState {
     featuresById: Record<string, Feature>;

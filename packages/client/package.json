@@ -36,13 +36,17 @@
   },
   "overrides": {
     "react-autosize-textarea": {
-      "react": "$react"
+      "react": "$react",
+      "react-dom": "$react-dom"
     },
     "@wordpress/block-editor": {
       "react-autosize-textarea": {
-        "react": "$react"
+        "react": "$react",
+        "react-dom": "$react-dom"
       }
-    }
+    },
+    "ajv": "^8.12.0",
+    "ajv-keywords": "^5.1.0"
   },
   "publishConfig": {
     "access": "public"

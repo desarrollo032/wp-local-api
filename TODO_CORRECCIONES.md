@@ -10,32 +10,45 @@
 
 ## Solución Paso a Paso:
 
-### Paso 1: Actualizar `packages/client/package.json`
-- [ ] Añadir `overrides` para forzar React 18 en `react-autosize-textarea`
-- [ ] Verificar versiones consistentes de `@wordpress/*`
+### Paso 1: Actualizar `packages/client/package.json` ✅
+- [x] Añadir `overrides` para forzar React 18 en `react-autosize-textarea`
+- [x] Verificar versiones consistentes de `@wordpress/*`
 
-### Paso 2: Corregir `packages/client/src/store/store.types.ts`
-- [ ] Crear tipos correctos para `StoreDescriptor` compatible con WP 15+
+### Paso 2: Corregir `packages/client/src/store/store.types.ts` ✅
+- [x] Crear tipos correctos para `StoreDescriptor` compatible con WP 15+
 
-### Paso 3: Corregir `packages/client/src/store/index.ts`
-- [ ] Usar tipos correctos para `createReduxStore`
-- [ ] Añadir type assertions necesarios
+### Paso 3: Corregir `packages/client/src/store/index.ts` ✅
+- [x] Usar tipos correctos para `createReduxStore`
+- [x] Añadir type assertions necesarios
 
-### Paso 4: Corregir `packages/client/src/api.ts`
-- [ ] Actualizar uso de `StoreDescriptor`
-- [ ] Corregir tipos de `dispatch` y `select`
+### Paso 4: Corregir `packages/client/src/store/constants.ts` ✅
+- [x] Eliminar importación problemática de `@wordpress/data/types`
 
-### Paso 5: Corregir `packages/client/src/command-integration/use-featured-comments.tsx`
-- [ ] Corregir tipos de `useRegistry`
+### Paso 5: Corregir `packages/client/src/api.ts` ✅
+- [x] Actualizar uso de `StoreDescriptor`
+- [x] Corregir tipos de `dispatch` y `select`
 
-### Paso 6: Corregir `packages/client/src/command-integration/input-modal.tsx`
-- [ ] Eliminar `@ts-ignore` y usar tipos correctos
+### Paso 6: Corregir `packages/client/src/command-integration/use-featured-comments.tsx` ✅
+- [x] Corregir tipos de `useRegistry`
 
-## Archivos a modificar:
+### Paso 7: Corregir `packages/client/src/command-integration/input-modal.tsx` ✅
+- [x] Eliminar `@ts-ignore` y usar tipos correctos
+
+### Paso 8: Corregir `packages/client/src/types.ts` ✅
+- [x] Eliminar importación de `StoreDescriptor`
+
+## Archivos modificados:
 1. `packages/client/package.json`
 2. `packages/client/src/store/store.types.ts`
 3. `packages/client/src/store/index.ts`
-4. `packages/client/src/api.ts`
-5. `packages/client/src/command-integration/use-featured-comments.tsx`
-6. `packages/client/src/command-integration/input-modal.tsx`
+4. `packages/client/src/store/constants.ts`
+5. `packages/client/src/api.ts`
+6. `packages/client/src/command-integration/use-featured-comments.tsx`
+7. `packages/client/src/command-integration/input-modal.tsx`
+8. `packages/client/src/types.ts`
+
+## Próximos pasos para el usuario:
+1. Ejecutar `npm install` en `packages/client`
+2. Ejecutar `npm run build` para verificar que no hay errores de compilación
+3. Si hay errores residuales, pueden necesitar más ajustes de tipos
 
