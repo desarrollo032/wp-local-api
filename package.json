@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "build:client": "npm run build --workspace=@automattic/wp-feature-api",
-    "build:client-features": "npm run build --workspace=@wp-feature-api/client-features",
-    "build:demo-agent": "npm run build --workspace=wp-feature-api-demo-agent",
+    "build": "npm run build:client && npm run build:client-features && npm run build:demo-agent",
+    "build:client": "wp-scripts build --config packages/client/webpack.config.js && tsc --emitDeclarationOnly --outDir packages/client/build-types --project packages/client/tsconfig.json",
+    "build:client-features": "wp-scripts build --config packages/client-features/webpack.config.js",
+    "build:demo-agent": "wp-scripts build --config packages/demo-agent/webpack.config.js",
     "format": "wp-scripts format",
     "lint": "npm-run-all lint:*",
     "lint:css": "wp-scripts lint-style",
@@ -28,7 +28,7 @@
     "test:unit:php:debug": "npm-run-all test:unit:php:setup:debug test:unit:php:base",
     "serve": "wp-env start --xdebug",
     "wp-env": "wp-env",
-    "clean": "rimraf build tsconfig.tsbuildinfo && npm run clean --workspaces --if-present",
+    "clean": "rimraf build tsconfig.tsbuildinfo packages/*/build packages/*/build-types packages/*/tsconfig.tsbuildinfo",
     "setup": "npm install && composer install"
   },
   "keywords": [

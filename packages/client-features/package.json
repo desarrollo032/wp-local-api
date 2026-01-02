@@ -4,12 +4,6 @@
   "description": "Core client-side features for WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
-  "scripts": {
-    "build": "wp-scripts build",
-    "lint": "wp-scripts lint-js",
-    "format": "wp-scripts format",
-    "clean": "rimraf build build-types tsconfig.tsbuildinfo"
-  },
   "peerDependencies": {
     "@automattic/wp-feature-api": "^0.1.9",
     "@wordpress/api-fetch": "^7.37.0",
@@ -22,8 +16,6 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.3",
-    "@wordpress/scripts": "^31.2.0",
-    "rimraf": "^5.0.10",
     "typescript": "^5.6.3"
   },
   "publishConfig": {
