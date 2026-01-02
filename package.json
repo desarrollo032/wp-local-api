@@ -12,6 +12,8 @@
     "build:client": "npx wp-scripts build --config packages/client/webpack.config.js && tsc --emitDeclarationOnly --outDir packages/client/build-types --project packages/client/tsconfig.json",
     "build:client-features": "npx wp-scripts build --config packages/client-features/webpack.config.js",
     "build:demo-agent": "npx wp-scripts build --config packages/demo-agent/webpack.config.js",
+    "build:plugins": "node scripts/create-plugins-zip.js",
+    "build:plugins:clean": "rimraf dist && npm run build:plugins",
     "format": "npx wp-scripts format",
     "lint": "npm-run-all lint:*",
     "lint:css": "npx wp-scripts lint-style",

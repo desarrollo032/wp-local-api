@@ -1,5 +1,6 @@
 a
 node_modules
+dist/
 
 # Release artifacts - only needed in GitHub Releases, not in git repo
 *.sha256
