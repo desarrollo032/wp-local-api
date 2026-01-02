@@ -1,11 +1,11 @@
 {
   "name": "wp-feature-api-demo-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TypeScript AI agent demo for the WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "peerDependencies": {
-    "@automattic/wp-feature-api": "^0.1.9",
+    "@automattic/wp-feature-api": "^0.1.10",
     "@wordpress/api-fetch": "^7.37.0",
     "@wordpress/components": "^31.0.0",
     "@wordpress/data": "^10.37.0",

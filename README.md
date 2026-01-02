@@ -2,7 +2,7 @@
 
 > ⚠️ **Este repositorio será reemplazado** por la [API de Funcionalidades](https://github.com/WordPress/abilities-api) a medida que se lancen versiones estables y se convierta en una API central de WordPress 6.9.
 
-[![Versión](https://img.shields.io/badge/Version-0.1.8-blue)](https://github.com/Automattic/wordpress-feature-api)
+[![Versión](https://img.shields.io/badge/Version-0.1.10-blue)](https://github.com/Automattic/wordpress-feature-api)
 [![GPLv2 License](https://img.shields.io/badge/License-GPL%20v2-green)](LICENSE)
 [![WordPress](https://img.shields.io/badge/WordPress-6.9+-blueviolet)](https://wordpress.org/)
 
@@ -120,7 +120,7 @@ Añadir manualmente a tu archivo `composer.json`:
 ```json
 {
   "require": {
-    "automattic/wp-feature-api": "^0.1.8"
+    "automattic/wp-feature-api": "^0.1.10"
   }
 }
 ```
@@ -128,7 +128,7 @@ Añadir manualmente a tu archivo `composer.json`:
 O usando el comando `composer` en la terminal:
 
 ```bash
-composer require automattic/wp-feature-api:"^0.1.8"
+composer require automattic/wp-feature-api:"^0.1.10"
 ```
 
 #### 2. Cargar la API de Funcionalidades en tu plugin

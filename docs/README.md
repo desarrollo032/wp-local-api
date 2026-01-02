@@ -60,7 +60,7 @@ Esta es la versión en **español** de la documentación. [Ver documentación en
 ```json
 {
   "require": {
-    "automattic/wp-feature-api": "^0.1.8"
+    "automattic/wp-feature-api": "^0.1.10"
   }
 }
 ```

@@ -198,3 +198,84 @@ function generateReport(pluginDir, results) {
     } else {
         console.log('   ❌ Errores:');
         results.header.errors.forEach(e => console.log(`      - ${e}`));
+        allValid = false;
+    }
+    results.header.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
+    
+    // Archivos requeridos
+    console.log('\n📄 ARCHIVOS REQUERIDOS:');
+    if (results.required.valid) {
+        console.log('   ✅ Todos los archivos requeridos presentes');
+    } else {
+        console.log('   ❌ Archivos faltantes:');
+        results.required.errors.forEach(e => console.log(`      - ${e}`));
+        allValid = false;
+    }
+    
+    // Estructura
+    console.log('\n📁 ESTRUCTURA DE ARCHIVOS:');
+    if (results.structure.valid) {
+        console.log(`   ✅ Estructura válida (${results.structure.fileCount} archivos)`);
+    } else {
+        console.log('   ❌ Problemas encontrados:');
+        results.structure.errors.forEach(e => console.log(`      - ${e}`));
+        allValid = false;
+    }
+    results.structure.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
+    
+    console.log('\n' + '='.repeat(60));
+    
+    return allValid;
+}
+
+/**
+ * Función principal
+ */
+function main() {
+    const args = process.argv.slice(2);
+    const pluginDir = args[0] || process.cwd();
+    
+    console.log('🔍 Validador de Plugins WordPress');
+    console.log('='.repeat(60));
+    console.log(`📂 Plugin: ${pluginDir}`);
+    
+    // Verificar que existe
+    if (!fs.existsSync(pluginDir)) {
+        console.error(`❌ Error: El directorio no existe: ${pluginDir}`);
+        process.exit(1);
+    }
+    
+    // Encontrar archivo principal
+    const mainFile = fs.readdirSync(pluginDir).find(f => f.endsWith('.php'));
+    
+    if (!mainFile) {
+        console.error('❌ Error: No se encontró archivo PHP principal');
+        process.exit(1);
+    }
+    
+    const mainFilePath = path.join(pluginDir, mainFile);
+    
+    // Ejecutar validaciones
+    const results = {
+        header: validateMainHeader(mainFilePath),
+        required: validateRequiredFiles(pluginDir, REQUIRED_FILES),
+        structure: validateFileStructure(pluginDir),
+    };
+    
+    // Generar reporte
+    const isValid = generateReport(pluginDir, results);
+    
+    console.log('\n' + (isValid ? '✅ VALIDACIÓN EXITOSA' : '❌ VALIDACIÓN FALLIDA'));
+    
+    process.exit(isValid ? 0 : 1);
+}
+
+module.exports = {
+    validateMainHeader,
+    validateFileStructure,
+    validateRequiredFiles,
+    validateZipStructure,
+    generateReport,
+};
+
+main();

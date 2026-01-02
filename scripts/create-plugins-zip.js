@@ -3,8 +3,9 @@
  * 
  * Este script:
  * 1. Compila los assets con Webpack
- * 2. Copia los archivos necesarios a carpetas de distribución
- * 3. Genera los archivos ZIP
+ * 2. Valida la estructura de los plugins
+ * 3. Copia los archivos necesarios (excluyendo desarrollo)
+ * 4. Genera los archivos ZIP
  * 
  * Uso: node scripts/create-plugins-zip.js
  */
@@ -20,26 +21,27 @@ const BUILD_CLIENT = path.resolve(ROOT, 'packages/client/build');
 const BUILD_CLIENT_FEATURES = path.resolve(ROOT, 'packages/client-features/build');
 const BUILD_DEMO_AGENT = path.resolve(ROOT, 'packages/demo-agent/build');
 
-// Archivos del plugin principal (wp-feature-api)
-const PLUGIN_MAIN_FILES = [
-    'wp-feature-api.php',
-    'composer.json',
-    'composer.lock',
+// Patrones a excluir (archivos de desarrollo)
+const EXCLUDE_PATTERNS = [
+    /node_modules/,
+    /\.git/,
+    /\.gitignore/,
+    /\.eslint/,
+    /\.prettier/,
+    /\.vscode/,
+    /tsconfig/,
+    /webpack\.config\.js/,
+    /composer\.lock/,
+    /package-lock\.json/,
+    /\.DS_Store/,
+    /Thumbs\.db/,
 ];
 
-const PLUGIN_MAIN_DIRS = [
-    'includes',
-    'build',  // Se copiará después del build
-];
-
-// Archivos del plugin demo (wp-feature-api-agent)
-const PLUGIN_DEMO_FILES = [
-    'wp-feature-api-agent.php',
-];
-
-const PLUGIN_DEMO_DIRS = [
-    'includes',
-    'build',  // Se copiará después del build
+// Extensiones de archivos a excluir
+const EXCLUDE_EXTENSIONS = [
+    '.map',
+    '.d.ts',
+    '.tsbuildinfo',
 ];
 
 /**
@@ -53,11 +55,31 @@ function ensureDir(dir) {
 }
 
 /**
+ * Verificar si un archivo debe ser excluido
+ */
+function shouldExclude(filePath) {
+    const relativePath = path.relative(ROOT, filePath);
+    
+    for (const pattern of EXCLUDE_PATTERNS) {
+        if (pattern.test(relativePath)) {
+            return true;
+        }
+    }
+    
+    const ext = path.extname(filePath);
+    if (EXCLUDE_EXTENSIONS.includes(ext)) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
  * Copiar archivo
  */
 function copyFile(src, dest) {
     fs.copyFileSync(src, dest);
-    console.log(`   📄 Copiado: ${path.relative(ROOT, src)} → ${path.relative(ROOT, dest)}`);
+    console.log(`   📄 ${path.basename(src)}`);
 }
 
 /**
@@ -74,7 +96,9 @@ function copyDir(src, dest) {
         if (entry.isDirectory()) {
             copyDir(srcPath, destPath);
         } else {
-            copyFile(srcPath, destPath);
+            if (!shouldExclude(srcPath)) {
+                copyFile(srcPath, destPath);
+            }
         }
     }
 }
@@ -83,56 +107,34 @@ function copyDir(src, dest) {
  * Construir el plugin wp-feature-api
  */
 function buildPluginMain() {
-    console.log('\n🔨 Construyendo plugin principal: wp-feature-api');
+    console.log('\n🔨 Construyendo: wp-feature-api');
+    console.log('-'.repeat(40));
     
     const pluginDir = path.resolve(DIST, 'wp-feature-api');
     ensureDir(pluginDir);
     
-    // Copiar archivos PHP
-    console.log('\n📋 Copiando archivos PHP:');
-    for (const file of PLUGIN_MAIN_FILES) {
-        const src = path.resolve(ROOT, file);
-        const dest = path.resolve(pluginDir, file);
-        if (fs.existsSync(src)) {
-            copyFile(src, dest);
-        } else {
-            console.warn(`   ⚠️ No encontrado: ${file}`);
-        }
-    }
+    // Copiar archivo principal del plugin
+    console.log('\n📄 Archivos PHP:');
+    copyFile(path.resolve(ROOT, 'wp-feature-api.php'), path.resolve(pluginDir, 'wp-feature-api.php'));
     
-    // Copiar directorios
-    console.log('\n📋 Copiando directorios:');
-    for (const dir of PLUGIN_MAIN_DIRS) {
-        const src = path.resolve(ROOT, dir);
-        const dest = path.resolve(pluginDir, dir);
-        if (fs.existsSync(src)) {
-            copyDir(src, dest);
-        } else if (dir === 'build') {
-            // El directorio build se crea después del build de webpack
-            console.warn(`   ⚠️ Directorio no encontrado (se creará después del build): ${dir}`);
-        }
-    }
+    // Copiar includes
+    console.log('\n📁 includes/:');
+    copyDir(path.resolve(ROOT, 'includes'), path.resolve(pluginDir, 'includes'));
     
-    // Copiar el SDK del cliente al directorio build del plugin
-    console.log('\n📋 Copiando SDK del cliente:');
-    const clientBuildDest = path.resolve(pluginDir, 'build', 'client');
-    ensureDir(clientBuildDest);
-    
+    // Copiar build del cliente (SDK)
+    console.log('\n📁 build/client/:');
     if (fs.existsSync(BUILD_CLIENT)) {
-        copyDir(BUILD_CLIENT, clientBuildDest);
-    } else {
-        console.warn(`   ⚠️ Build del cliente no encontrado: ${BUILD_CLIENT}`);
+        const clientDest = path.resolve(pluginDir, 'build', 'client');
+        ensureDir(clientDest);
+        copyDir(BUILD_CLIENT, clientDest);
     }
     
-    // Copiar client-features al directorio build del plugin
-    console.log('\n📋 Copiando client-features:');
-    const clientFeaturesDest = path.resolve(pluginDir, 'build', 'client-features');
-    ensureDir(clientFeaturesDest);
-    
+    // Copiar build de client-features
+    console.log('\n📁 build/client-features/:');
     if (fs.existsSync(BUILD_CLIENT_FEATURES)) {
-        copyDir(BUILD_CLIENT_FEATURES, clientFeaturesDest);
-    } else {
-        console.warn(`   ⚠️ Build de client-features no encontrado: ${BUILD_CLIENT_FEATURES}`);
+        const featuresDest = path.resolve(pluginDir, 'build', 'client-features');
+        ensureDir(featuresDest);
+        copyDir(BUILD_CLIENT_FEATURES, featuresDest);
     }
     
     return pluginDir;
@@ -142,100 +144,169 @@ function buildPluginMain() {
  * Construir el plugin wp-feature-api-agent
  */
 function buildPluginDemo() {
-    console.log('\n🔨 Construyendo plugin demo: wp-feature-api-agent');
+    console.log('\n🔨 Construyendo: wp-feature-api-agent');
+    console.log('-'.repeat(40));
     
     const pluginDir = path.resolve(DIST, 'wp-feature-api-agent');
     ensureDir(pluginDir);
     
-    // Copiar archivos PHP
-    console.log('\n📋 Copiando archivos PHP:');
-    for (const file of PLUGIN_DEMO_FILES) {
-        const src = path.resolve(ROOT, 'packages/demo-agent', file);
-        const dest = path.resolve(pluginDir, file);
-        if (fs.existsSync(src)) {
-            copyFile(src, dest);
-        } else {
-            console.warn(`   ⚠️ No encontrado: ${file}`);
-        }
+    // Copiar archivo principal del plugin
+    console.log('\n📄 Archivos PHP:');
+    copyFile(
+        path.resolve(ROOT, 'packages/demo-agent/wp-feature-api-agent.php'),
+        path.resolve(pluginDir, 'wp-feature-api-agent.php')
+    );
+    
+    // Copiar includes
+    console.log('\n📁 includes/:');
+    copyDir(
+        path.resolve(ROOT, 'packages/demo-agent/includes'),
+        path.resolve(pluginDir, 'includes')
+    );
+    
+    // Copiar build (JS y CSS)
+    console.log('\n📁 build/:');
+    if (fs.existsSync(BUILD_DEMO_AGENT)) {
+        copyDir(BUILD_DEMO_AGENT, path.resolve(pluginDir, 'build'));
     }
     
-    // Copiar directorios
-    console.log('\n📋 Copiando directorios:');
-    for (const dir of PLUGIN_DEMO_DIRS) {
-        const src = path.resolve(ROOT, 'packages/demo-agent', dir);
-        const dest = path.resolve(pluginDir, dir);
-        if (fs.existsSync(src)) {
-            copyDir(src, dest);
-        } else {
-            console.warn(`   ⚠️ No encontrado: ${dir}`);
-        }
-    }
-    
-    // Copiar el SDK del cliente como dependencia
-    console.log('\n📋 Copiando SDK del cliente como dependencia:');
-    const clientDest = path.resolve(pluginDir, 'vendor', '@automattic', 'wp-feature-api');
-    ensureDir(clientDest);
-    
+    // Copiar SDK del cliente como dependencia
+    console.log('\n📁 vendor/@automattic/wp-feature-api/:');
+    const vendorDir = path.resolve(pluginDir, 'vendor', '@automattic', 'wp-feature-api');
+    ensureDir(vendorDir);
     if (fs.existsSync(BUILD_CLIENT)) {
-        copyDir(BUILD_CLIENT, clientDest);
+        copyDir(BUILD_CLIENT, vendorDir);
     }
     
     return pluginDir;
 }
 
 /**
- * Generar archivo ZIP
+ * Validar estructura del plugin WordPress
  */
-function createZip(dir, zipName) {
-    console.log(`\n📦 Generando ${zipName}...`);
+function validatePlugin(pluginDir) {
+    console.log(`\n🔍 Validando: ${path.basename(pluginDir)}`);
     
-    const cwd = process.cwd();
-    const dirName = path.basename(dir);
-    const zipPath = path.resolve(DIST, zipName);
+    const errors = [];
     
-    try {
-        // Usar zip de Linux
-        execSync(`cd "${DIST}" && zip -r "${zipName}" "${dirName}"`, { 
-            stdio: 'inherit',
-            cwd: DIST 
-        });
-        console.log(`✅ Creado: ${zipName}`);
-    } catch (error) {
-        // Si zip no está disponible, usar método alternativo
-        console.warn('⚠️ zip no disponible, tacto con tar+gzip...');
-        try {
-            execSync(`cd "${DIST}" && tar -czf "${zipName.replace('.zip', '.tgz')}" "${dirName}"`, {
-                stdio: 'inherit'
-            });
-            console.log(`✅ Creado: ${zipName.replace('.zip', '.tgz')}`);
-        } catch (e) {
-            console.error('❌ No se pudo crear el archivo comprimido');
-            throw e;
+    // Verificar archivo principal
+    const mainPhp = fs.readdirSync(pluginDir).find(f => f.endsWith('.php'));
+    if (!mainPhp) {
+        errors.push('Archivo PHP principal no encontrado');
+    } else {
+        // Verificar headers requeridos de WordPress
+        const content = fs.readFileSync(path.join(pluginDir, mainPhp), 'utf8');
+        const requiredHeaders = ['Plugin Name:', 'Version:'];
+        for (const header of requiredHeaders) {
+            if (!content.includes(header)) {
+                errors.push(`Header requerido faltante: ${header}`);
+            }
+        }
+        // Verificar protección ABSPATH
+        if (!content.includes('ABSPATH')) {
+            console.log('   ⚠️  Advertencia: No tiene protección ABSPATH');
         }
     }
+    
+    if (errors.length > 0) {
+        console.log('   ❌ Errores:');
+        errors.forEach(e => console.log(`      - ${e}`));
+        return false;
+    }
+    
+    console.log('   ✅ Validación exitosa');
+    return true;
+}
+
+/**
+ * Generar archivo ZIP
+ */
+function createZip(pluginDir, zipName) {
+    console.log(`\n📦 Generando ${zipName}...`);
+    
+    const dirName = path.basename(pluginDir);
+    
+    try {
+        execSync(`cd "${DIST}" && zip -r "${zipName}" "${dirName}"`, {
+            stdio: 'inherit',
+            cwd: DIST
+        });
+        console.log(`   ✅ Creado: ${zipName}`);
+        return true;
+    } catch (error) {
+        console.log('   ℹ️  zip no disponible, usando tar+gzip...');
+        try {
+            const tgzName = zipName.replace('.zip', '.tgz');
+            execSync(`cd "${DIST}" && tar -czf "${tgzName}" "${dirName}"`, {
+                stdio: 'inherit'
+            });
+            console.log(`   ✅ Creado: ${tgzName}`);
+            return true;
+        } catch (e) {
+            console.error(`   ❌ Error al crear archivo: ${e.message}`);
+            return false;
+        }
+    }
+}
+
+/**
+ * Mostrar contenido del ZIP
+ */
+function showZipContents(zipName) {
+    const zipPath = path.resolve(DIST, zipName);
+    if (fs.existsSync(zipPath)) {
+        const stats = fs.statSync(zipPath);
+        console.log(`   📄 ${zipName} (${(stats.size / 1024).toFixed(2)} KB)`);
+    }
+}
+
+/**
+ * Listar estructura de archivos
+ */
+function listFiles(dir, prefix = '') {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    entries.forEach((entry, index) => {
+        const isLast = index === entries.length - 1;
+        const connector = isLast ? '└── ' : '├── ';
+        console.log(`${prefix}${connector}${entry.name}`);
+        if (entry.isDirectory()) {
+            const newPrefix = prefix + (isLast ? '    ' : '│   ');
+            listFiles(path.join(dir, entry.name), newPrefix);
+        }
+    });
 }
 
 /**
  * Función principal
  */
 async function main() {
-    console.log('🚀 Iniciando build de plugins WordPress\n');
-    console.log('=' .repeat(50));
+    console.log('🚀 Build de Plugins WordPress');
+    console.log('='.repeat(50));
     
-    // Verificar que existen los builds
-    console.log('\n🔍 Verificando builds existentes...');
+    // Verificar builds
+    console.log('\n🔍 Verificando builds de webpack...');
+    let needsBuild = false;
     
     if (!fs.existsSync(BUILD_CLIENT)) {
-        console.log('⚠️ Build del cliente no encontrado. Ejecutando npm run build:client...');
-        execSync('npm run build:client', { stdio: 'inherit', cwd: ROOT });
+        console.log('   ⚠️ Build del cliente no encontrado');
+        needsBuild = true;
     }
-    
     if (!fs.existsSync(BUILD_DEMO_AGENT)) {
-        console.log('⚠️ Build del demo-agent no encontrado. Ejecutando npm run build:demo-agent...');
-        execSync('npm run build:demo-agent', { stdio: 'inherit', cwd: ROOT });
+        console.log('   ⚠️ Build del demo-agent no encontrado');
+        needsBuild = true;
     }
     
-    // Limpiar directorio dist
+    if (needsBuild) {
+        console.log('\n📦 Ejecutando builds de webpack...');
+        try {
+            execSync('npm run build', { stdio: 'inherit', cwd: ROOT });
+        } catch (e) {
+            console.error('❌ Error en build de webpack');
+            process.exit(1);
+        }
+    }
+    
+    // Limpiar dist
     console.log('\n🧹 Limpiando directorio dist...');
     if (fs.existsSync(DIST)) {
         fs.rmSync(DIST, { recursive: true, force: true });
@@ -243,26 +314,53 @@ async function main() {
     ensureDir(DIST);
     
     // Construir plugins
+    console.log('\n' + '='.repeat(50));
     const pluginMainDir = buildPluginMain();
     const pluginDemoDir = buildPluginDemo();
     
+    // Validar plugins
+    console.log('\n' + '='.repeat(50));
+    console.log('🔍 VALIDACIÓN DE PLUGINS');
+    console.log('='.repeat(50));
+    
+    const mainValid = validatePlugin(pluginMainDir);
+    const demoValid = validatePlugin(pluginDemoDir);
+    
+    if (!mainValid || !demoValid) {
+        console.error('\n❌ Error: La validación falló');
+        process.exit(1);
+    }
+    
     // Generar ZIPs
     console.log('\n' + '='.repeat(50));
-    console.log('📦 Generando archivos ZIP...');
+    console.log('📦 GENERANDO ARCHIVOS ZIP');
+    console.log('='.repeat(50));
     
-    createZip(pluginMainDir, 'wp-feature-api.zip');
-    createZip(pluginDemoDir, 'wp-feature-api-agent.zip');
+    const mainZipOk = createZip(pluginMainDir, 'wp-feature-api.zip');
+    const demoZipOk = createZip(pluginDemoDir, 'wp-feature-api-agent.zip');
     
-    console.log('\n' + '='.repeat(50));
-    console.log('✅ Build completado exitosamente!');
-    console.log(`📁 Archivos en: ${DIST}`);
-    console.log('\nArchivos generados:');
-    const files = fs.readdirSync(DIST);
-    for (const file of files) {
-        const filePath = path.resolve(DIST, file);
-        const size = fs.statSync(filePath).size;
-        console.log(`   - ${file} (${(size / 1024).toFixed(2)} KB)`);
+    if (!mainZipOk || !demoZipOk) {
+        console.error('\n❌ Error: No se pudieron crear los ZIPs');
+        process.exit(1);
     }
+    
+    // Resumen
+    console.log('\n' + '='.repeat(50));
+    console.log('✅ BUILD COMPLETADO');
+    console.log('='.repeat(50));
+    console.log(`📁 Directorio: ${DIST}`);
+    console.log('\nArchivos generados:');
+    showZipContents('wp-feature-api.zip');
+    showZipContents('wp-feature-api-agent.zip');
+    
+    // Listar estructura
+    console.log('\n📂 Estructura de plugins:');
+    
+    console.log('\nwp-feature-api/');
+    listFiles(pluginMainDir, '  ');
+    
+    console.log('\nwp-feature-api-agent/');
+    listFiles(pluginDemoDir, '  ');
 }
 
 main().catch(console.error);
