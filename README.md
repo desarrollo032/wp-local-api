@@ -90,7 +90,7 @@ El filtrado se puede realizar mediante:
 
 1. Clonar el repositorio:
    ```bash
-   git clone https://github.com/Automattic/wordpress-feature-api.git
+   git clone https://github.com/desarrollo032/wp-feature-api.git
    cd wordpress-feature-api
    ```
 

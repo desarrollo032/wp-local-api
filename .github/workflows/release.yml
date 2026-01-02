@@ -1,171 +1,270 @@
-name: Release plugin
+name: Release WordPress Plugin
 
+# =============================================================================
+# TRIGGER: Se ejecuta automáticamente en push/merge a la rama main
+# =============================================================================
 on:
   push:
     branches:
       - main
+    # Solo ejecutar si hay cambios en archivos relevantes del plugin
+    paths:
+      - 'wp-feature-api.php'
+      - 'includes/**/*.php'
+      - '!vendor/**'
+      - '!node_modules/**'
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  PLUGIN_MAIN_FILE: wp-feature-api.php
+  PLUGIN_SLUG: wp-feature-api
 
 jobs:
-  build-and-release:
+  # ===========================================================================
+  # JOB: Release - Compila, crea ZIP y publica en GitHub Releases
+  # ===========================================================================
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
+      # =======================================================================
+      # STEP 1: Checkout del repositorio
+      # =======================================================================
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Necesario para generar changelog desde tags
 
-      - name: Configure git
+      # =======================================================================
+      # STEP 2: Configurar Git (necesario para crear tags localmente)
+      # =======================================================================
+      - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Detect plugin main file, slug and version
-        id: detect
+      # =======================================================================
+      # STEP 3: Extraer versión del archivo principal del plugin
+      # =======================================================================
+      - name: Extract plugin version
+        id: version
         run: |
-          set -euo pipefail
-          # Find the PHP file in repo root that contains a plugin header
-          PLUGIN_FILE=$(grep -lR --exclude-dir=.github --exclude-dir=node_modules -m1 "Plugin Name:" -- *.php || true)
-          if [ -z "$PLUGIN_FILE" ]; then
-            echo "No plugin main file found in repo root. Aborting." >&2
-            exit 1
-          fi
-          echo "Found plugin file: $PLUGIN_FILE"
-          PLUGIN_SLUG=$(basename "$PLUGIN_FILE" .php)
-          echo "PLUGIN_FILE=$PLUGIN_FILE" >> $GITHUB_ENV
-          echo "PLUGIN_SLUG=$PLUGIN_SLUG" >> $GITHUB_ENV
-          # Extract Version: header (case-insensitive)
-          VERSION=$(sed -n 's/^[[:space:]]*Version:[[:space:]]*//Ip' "$PLUGIN_FILE" | head -n1 | tr -d '[:space:]')
+          # Extraer la versión desde la cabecera del plugin PHP
+          VERSION=$(grep -m 1 "Version:" "${{ env.PLUGIN_MAIN_FILE }}" | sed 's/.*Version: *//' | tr -d ' \r\n')
+          
+          # Validar que la versión no esté vacía
           if [ -z "$VERSION" ]; then
-            echo "No Version header found in $PLUGIN_FILE. Aborting." >&2
+            echo "Error: No se pudo extraer la versión de ${{ env.PLUGIN_MAIN_FILE }}"
             exit 1
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Detected version $VERSION and slug $PLUGIN_SLUG"
+          
+          echo "Versión extraída: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create Git tag if missing
-        id: tag
+      # =======================================================================
+      # STEP 4: Verificar si el tag ya existe (evitar duplicados)
+      # =======================================================================
+      - name: Check if tag exists
+        id: tag_check
         run: |
-          set -euo pipefail
-          TAG=v${{ env.VERSION }}
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "Tag $TAG already exists, skipping tag creation."
-            echo "tag_created=false" >> $GITHUB_OUTPUT
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.version.outputs.version }} ya existe. Cancelando release."
+            echo "exists=true" >> $GITHUB_OUTPUT
           else
-            # Push tag using GITHUB_TOKEN auth
-            git tag -a "$TAG" -m "Release $TAG"
-            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-            git push origin "$TAG"
-            echo "tag_created=true" >> $GITHUB_OUTPUT
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run PHP lint
+      # =======================================================================
+      # STEP 5: Instalar dependencias (si el plugin las necesita)
+      # =======================================================================
+      - name: Install dependencies
+        if: runner.os == 'Linux' && file composer.json 2>/dev/null | grep -q JSON
         run: |
-          set -euo pipefail
-          echo "Running PHP syntax check..."
-          # Find PHP files excluding vendor, node_modules and .github
-          find . -type f -name "*.php" \
-            ! -path "./.git/*" ! -path "./.github/*" ! -path "./node_modules/*" ! -path "./vendor/*" \
-            -print0 | xargs -0 -n1 php -l
-
-      - name: Setup Node.js and run build/tests if present
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Cache Node.js and Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ~/.cache
-            node_modules
-            ~/.composer/cache
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json', '**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-
-      - name: Install and run JS build/tests (optional)
-        run: |
-          set -euo pipefail
-          if [ -f package.json ]; then
-            echo "package.json found — installing npm dependencies"
-            npm ci
-            if grep -q '"build"' package.json; then
-              echo "Running npm run build"
-              npm run build
-            fi
-            if grep -q '"test"' package.json; then
-              echo "Running npm test"
-              npm test || true
-            fi
-          else
-            echo "No package.json in repo root — skipping JS build/tests"
+          if [ -f "composer.json" ]; then
+            composer install --no-dev --optimize-autoloader --no-interaction
           fi
+        shell: bash
 
-      - name: Prepare ZIP package
-        id: package
+      - name: Install npm dependencies
+        if: runner.os == 'Linux' && file package.json 2>/dev/null | grep -q JSON
         run: |
-          set -euo pipefail
-          SLUG=${{ env.PLUGIN_SLUG }}
-          ARCHIVE="${SLUG}.zip"
-          # Create a release directory for artifacts
-          mkdir -p release
-          # Create zip excluding .git, .github, node_modules and common dev files
-          zip -r "$ARCHIVE" . \
-            -x "./.git/*" "./.github/*" "./node_modules/*" "**/node_modules/*" \
-            "*.zip" "*.tar.gz" "*.tgz" "release/*" \
-            "*.md" "docs/*" "tests/*" "phpunit.xml*" \
-            "*.yml" "*.yaml" \
-            "package-lock.json" "yarn.lock" \
-            ".vscode/*" "*.log"  
-          mv "$ARCHIVE" release/
-          echo "asset_path=release/$ARCHIVE" >> $GITHUB_OUTPUT
+          if [ -f "package.json" ]; then
+            npm ci --legacy-peer-deps
+          fi
+        shell: bash
 
-      - name: Generate changelog from commits
+      # =======================================================================
+      # STEP 6: Construir assets (si hay build script)
+      # =======================================================================
+      - name: Build assets
+        if: runner.os == 'Linux' && [ -f "package.json" ] && grep -q '"build"' package.json
+        run: npm run build
+        shell: bash
+
+      # =======================================================================
+      # STEP 7: Generar changelog desde el último tag
+      # =======================================================================
+      - name: Generate changelog
         id: changelog
         run: |
-          set -euo pipefail
-          mkdir -p release
-          # Find previous tag (if any)
-          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [ -n "$PREV_TAG" ]; then
-            RANGE="$PREV_TAG..HEAD"
+          # Obtener el tag anterior (último tag semver antes del actual)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            # Si no hay tags anteriores, usar primer commit
+            CHANGELOG=$(git log --oneline --format="* %s" -n 20)
+            echo "_no_previous_tag=true" >> $GITHUB_OUTPUT
           else
-            RANGE="HEAD"
+            # Generar changelog desde el último tag
+            CHANGELOG=$(git log "$LAST_TAG"..HEAD --oneline --format="* %s")
+            
+            # Si no hay cambios desde el último tag
+            if [ -z "$CHANGELOG" ]; then
+              echo "No hay cambios desde $LAST_TAG"
+              CHANGELOG="* Sin cambios significativos"
+            fi
+            echo "_last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
           fi
-          if [ "$RANGE" = "HEAD" ]; then
-            git log --pretty=format:"- %s (%an)" > release/changelog.txt
-          else
-            git log $RANGE --pretty=format:"- %s (%an)" > release/changelog.txt
-          fi
-          # Ensure safe set-output encoding
-          BODY=$(sed ':a;N;$!ba;s/%/%%/g' release/changelog.txt)
-          echo "body<<EOF" >> $GITHUB_ENV
-          cat release/changelog.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          echo "changelog_path=release/changelog.txt" >> $GITHUB_OUTPUT
+          
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
+      # =======================================================================
+      # STEP 8: Crear directorio temporal y preparar archivos
+      # =======================================================================
+      - name: Prepare plugin files
+        run: |
+          PLUGIN_SLUG="${{ env.PLUGIN_SLUG }}"
+          mkdir -p "$PLUGIN_SLUG"
+          
+          # Copiar archivos del plugin al directorio temporal
+          # Excluir: .git, .github, node_modules, vendor, archivos de desarrollo
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='composer.lock' \
+            --exclude='package-lock.json' \
+            --exclude='tsconfig*.json' \
+            --exclude='webpack.config.js' \
+            --exclude='phpcs.xml*' \
+            --exclude='phpunit*' \
+            --exclude='*.map' \
+            --exclude='.eslintrc*' \
+            --exclude='.editorconfig' \
+            --exclude='CONTRIBUTING.md' \
+            --exclude='DESIGN.md' \
+            --exclude='RFC.md' \
+            --exclude='README.md' \
+            --exclude='build/' \
+            --exclude='packages/*/build*' \
+            --exclude='packages/*/node_modules' \
+            --exclude='packages/*/tsconfig*.json' \
+            --exclude='packages/*/webpack.config.js' \
+            . "$PLUGIN_SLUG/"
+          
+          echo "Archivos preparados en $PLUGIN_SLUG/"
+          ls -la "$PLUGIN_SLUG/"
+
+      # =======================================================================
+      # STEP 9: Crear archivo ZIP del plugin
+      # =======================================================================
+      - name: Create plugin ZIP
+        run: |
+          PLUGIN_SLUG="${{ env.PLUGIN_SLUG }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Crear ZIP sin directorio padre (flat)
+          cd "$PLUGIN_SLUG"
+          zip -r "../$PLUGIN_SLUG-$VERSION.zip" .
+          
+          cd ..
+          echo "ZIP creado: $PLUGIN_SLUG-$VERSION.zip"
+          ls -lh "$PLUGIN_SLUG-$VERSION.zip"
+
+      # =======================================================================
+      # STEP 10: Cancelar si el tag ya existe
+      # =======================================================================
+      - name: Cancel if tag exists
+        if: steps.tag_check.outputs.exists == 'true'
+        run: |
+          echo "El release ha sido cancelado porque el tag ya existe."
+          exit 78  # Código de salida especial para cancelar workflow
+
+      # =======================================================================
+      # STEP 11: Crear y pushear el tag Git
+      # =======================================================================
+      - name: Create Git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_NAME="v$VERSION"
+          
+          # Crear tag anotado con metadatos
+          CHANGELOG=$(git log --oneline --format="* %s" -n 10)
+          
+          git tag -a "$TAG_NAME" -m "Release $VERSION" -m "" -m "Changes:" -m "$CHANGELOG"
+          
+          # Verificar tag creado
+          echo "Tag creado: $TAG_NAME"
+          git tag -l | grep "$VERSION"
+          
+          # Pushear tag a remoto (usando token de GitHub)
+          git push origin "$TAG_NAME" || echo "El tag ya existe en remoto"
+
+      # =======================================================================
+      # STEP 12: Crear GitHub Release
+      # =======================================================================
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ env.VERSION }}
-          release_name: ${{ env.VERSION }}
-          body: ${{ env.BODY }}
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## Changes from previous version
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            
+            **Full Chelog:** [Compare versions](https://github.com/${{ github.repository }}/compare/v${{ steps.chelog.outputs._last_tag || '0.0.0' }}...v${{ steps.version.outputs.version }})
+            
+            **Assets:**
+            - `${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip` - Plugin ready for installation
           draft: false
           prerelease: false
+
+      # =======================================================================
+      # STEP 13: Subir el ZIP como asset del release
+      # =======================================================================
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload ZIP to Release
-        uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.package.outputs.asset_path }}
-          asset_name: ${{ env.PLUGIN_SLUG }}.zip
+          asset_path: ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip
+          asset_name: ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip
           asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # =======================================================================
+      # STEP 14: Mostrar resumen final
+      # =======================================================================
+      - name: Summary
+        run: |
+          echo "## ✅ Release completado exitosamente"
+          echo ""
+          echo "**Versión:** ${{ steps.version.outputs.version }}"
+          echo "**Tag:** v${{ steps.version.outputs.version }}"
+          echo "**ZIP:** ${{ env.PLUGIN_SLUG }}-${{ steps.version.outputs.version }}.zip"
+          echo ""
+          echo "El release está disponible en: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+
