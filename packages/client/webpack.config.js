@@ -3,16 +3,20 @@
  */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extraction-webpack-plugin' );
+/**
+ * External dependencies
+ */
+const path = require( 'path' );
 
 module.exports = {
 	...defaultConfig,
 	entry: {
-		index: './src/index.ts',
+		index: path.resolve( __dirname, 'src/index.ts' ),
 	},
 	output: {
 		...defaultConfig.output,
 		filename: '[name].js',
-		path: __dirname + '/build',
+		path: path.resolve( __dirname, 'build' ),
 		library: {
 			name: [ 'wp', 'features' ],
 			type: 'window',

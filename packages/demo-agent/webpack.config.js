@@ -10,12 +10,12 @@ const path = require( 'path' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		index: './src/index.tsx',
+		index: path.resolve( __dirname, 'src/index.tsx' ),
 	},
 	output: {
 		...defaultConfig.output,
 		filename: '[name].js',
-		path: __dirname + '/build',
+		path: path.resolve( __dirname, 'build' ),
 	},
 	resolve: {
 		...defaultConfig.resolve,

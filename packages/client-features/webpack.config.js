@@ -11,12 +11,12 @@ const path = require( 'path' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		index: './src/index.ts',
+		index: path.resolve( __dirname, 'src/index.ts' ),
 	},
 	output: {
 		...defaultConfig.output,
 		filename: '[name].js',
-		path: __dirname + '/build',
+		path: path.resolve( __dirname, 'build' ),
 		library: {
 			type: 'window',
 			export: 'default',

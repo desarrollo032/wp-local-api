@@ -3,8 +3,8 @@
  */
 type FeatureCallbackContext = {
     data: {
-        dispatch: (storeName: any) => any;
-        select: (storeName: any) => any;
+        dispatch: any;
+        select: any;
     };
 };
 export interface Feature {
