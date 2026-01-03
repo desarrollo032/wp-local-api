@@ -1,4 +1,14 @@
 /**
+ * WordPress dependencies
+ */
+/**
+ * Internal dependencies
+ */
+/**
+ * Type definition for the WordPress registry
+ * (Kept for future reference or if needed, but currently unused locally)
+ */
+/**
  * Type for the context passed to feature callbacks
  */
 type FeatureCallbackContext = {
@@ -7,6 +17,12 @@ type FeatureCallbackContext = {
         select: any;
     };
 };
+/**
+ * Select function type for WordPress stores
+ */
+/**
+ * Dispatch function type for WordPress stores
+ */
 export interface Feature {
     id: string;
     name: string;

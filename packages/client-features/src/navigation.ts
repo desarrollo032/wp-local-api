@@ -104,7 +104,6 @@ export const navigate: Feature = {
 	},
 };
 
-
 /**
  * Client-side resource to tell which URL is currently being viewed.
  */

@@ -14,7 +14,7 @@ import {
  * External dependencies
  */
 import { type ReactNode, type Dispatch, type SetStateAction } from 'react';
-import { Spinner } from '@wordpress/components';
+// import { Spinner } from '@wordpress/components';
 
 /**
  * Internal dependencies
@@ -84,8 +84,12 @@ export const ConversationProvider = ( {
 	const [ toolNameMap, setToolNameMap ] = useState<
 		Record< string, string >
 	>( {} );
-	const [ models, setModels ] = useState< Array< { id: string; owned_by?: string; raw?: any } > >( [] );
-	const [ selectedModel, setSelectedModel ] = useState< string | null >( null );
+	const [ models, setModels ] = useState<
+		Array< { id: string; owned_by?: string; raw?: any } >
+	>( [] );
+	const [ selectedModel, setSelectedModel ] = useState< string | null >(
+		null
+	);
 	const [ mcpStatus, setMcpStatus ] = useState< McpStatus >( () => ( {
 		is_active: false,
 		tools_count: 0,
@@ -105,7 +109,7 @@ export const ConversationProvider = ( {
 		}
 		isInitializing.current = true;
 
-	const initializeExecutor = async () => {
+		const initializeExecutor = async () => {
 			const executor = createToolExecutor();
 			const provider = createWpFeatureToolProvider();
 			const mcpProvider = createMcpToolProvider();
@@ -131,28 +135,32 @@ export const ConversationProvider = ( {
 		initializeExecutor();
 
 		// Fetch MCP status
-		(async () => {
+		( async () => {
 			try {
 				const apiFetch = ( window as any ).wp?.apiFetch;
 				if ( ! apiFetch ) {
 					return;
 				}
-				const resp = await apiFetch( { path: '/wp/v2/ai-api-proxy/v1/mcp/status' } );
+				const resp = await apiFetch( {
+					path: '/wp/v2/ai-api-proxy/v1/mcp/status',
+				} );
 				setMcpStatus( resp );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
 				console.log( 'MCP not available:', e );
 			}
-		})();
+		} )();
 
 		// Fetch available models from the proxy
-		(async () => {
+		( async () => {
 			try {
 				const apiFetch = ( window as any ).wp?.apiFetch;
 				if ( ! apiFetch ) {
 					return;
 				}
-				const resp = await apiFetch( { path: '/wp/v2/ai-api-proxy/v1/models' } );
+				const resp = await apiFetch( {
+					path: '/wp/v2/ai-api-proxy/v1/models',
+				} );
 				const data = resp?.data ?? resp;
 				if ( Array.isArray( data ) ) {
 					const parsed = data.map( ( m: any, i: number ) => ( {
@@ -162,19 +170,23 @@ export const ConversationProvider = ( {
 					} ) );
 					setModels( parsed );
 					if ( parsed.length > 0 ) {
-						setSelectedModel( parsed[0].id );
+						setSelectedModel( parsed[ 0 ].id );
 					}
 				}
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
 				console.error( 'Failed to fetch model list:', e );
 			}
-		})();
+		} )();
 	}, [] );
 
 	const agent: Agent | null = useMemo( () => {
 		if ( toolExecutor ) {
-			return createAgent( { apiClient: wpApiClient, toolExecutor, mcpStatus } );
+			return createAgent( {
+				apiClient: wpApiClient,
+				toolExecutor,
+				mcpStatus,
+			} );
 		}
 		return null;
 	}, [ toolExecutor, mcpStatus ] );
@@ -232,7 +244,7 @@ export const ConversationProvider = ( {
 				setIsLoading( false );
 			}
 		},
-		[ isLoading, agent, messages, toolExecutor ]
+		[ isLoading, agent, messages, selectedModel ]
 	);
 
 	const clearConversation = useCallback( () => {

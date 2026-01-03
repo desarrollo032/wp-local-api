@@ -24,10 +24,11 @@ import type { McpStatus } from '../context/ConversationProvider';
  * @return The system prompt string.
  */
 export const generateSystemPrompt = ( mcpStatus: McpStatus ): string => {
-	const mcpSection = mcpStatus.is_active && mcpStatus.status === 'connected'
-		? `\n\n## MCP Tools Available (${ mcpStatus.tools_count } tools)
+	const mcpSection =
+		mcpStatus.is_active && mcpStatus.status === 'connected'
+			? `\n\n## MCP Tools Available (${ mcpStatus.tools_count } tools)
 You can execute automatic actions on WordPress using MCP tools.`
-		: '\n\n## MCP Status\nMCP is NOT active. You can suggest actions but cannot execute them automatically.';
+			: '\n\n## MCP Status\nMCP is NOT active. You can suggest actions but cannot execute them automatically.';
 
 	return `You are an advanced AI assistant designed to help users with complex queries inside the user's WordPress Admin dashboard, making multiple tool calls as needed. Your primary goal is to provide accurate and helpful responses to user queries.
 
@@ -129,4 +130,8 @@ If MCP tools are not available, you can still:
  * The default system prompt used for agent interactions (for backward compatibility).
  * @deprecated Use generateSystemPrompt with MCP status instead.
  */
-export const defaultSystemPrompt = generateSystemPrompt( { is_active: false, tools_count: 0, status: 'inactive' } );
+export const defaultSystemPrompt = generateSystemPrompt( {
+	is_active: false,
+	tools_count: 0,
+	status: 'inactive',
+} );

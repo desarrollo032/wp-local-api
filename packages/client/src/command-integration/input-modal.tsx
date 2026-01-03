@@ -6,6 +6,7 @@ import {
 	Modal,
 	TextControl,
 	Button,
+	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
 	__experimentalVStack as VStack,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -32,14 +33,15 @@ interface InputModalProps {
 export default function InputModal( { featureId }: InputModalProps ) {
 	const registry = useRegistry();
 	const [ formData, setFormData ] = useState< Record< string, any > >( {} );
-	const setFeatureInputInProgress =
-		useDispatch( store as any ).setFeatureInputInProgress;
+	const setFeatureInputInProgress = useDispatch(
+		store as any
+	).setFeatureInputInProgress;
 	// Ref for the container of inputs
 	const inputContainerRef = useRef< HTMLDivElement >( null );
 
 	const feature = useSelect(
 		( _select: any ) => {
-			return ( _select( store as any ) ).getRegisteredFeature( featureId );
+			return _select( store as any ).getRegisteredFeature( featureId );
 		},
 		[ featureId ]
 	);
@@ -85,8 +87,9 @@ export default function InputModal( { featureId }: InputModalProps ) {
 
 	const handleSubmit = () => {
 		// Get dispatch and select from registry for the callback context
-		const { dispatch: registryDispatch, select: registrySelect } = registry as any;
-		
+		const { dispatch: registryDispatch, select: registrySelect } =
+			registry as any;
+
 		feature?.callback?.( formData, {
 			data: { dispatch: registryDispatch, select: registrySelect },
 		} );
@@ -185,4 +188,3 @@ export default function InputModal( { featureId }: InputModalProps ) {
 		</Modal>
 	);
 }
-

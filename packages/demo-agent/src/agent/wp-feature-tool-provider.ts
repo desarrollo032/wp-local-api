@@ -18,8 +18,10 @@ function stringToHex( str: string ): string {
 	let hash = 5381;
 	for ( let i = 0; i < str.length; i++ ) {
 		const char = str.charCodeAt( i );
+		// eslint-disable-next-line no-bitwise
 		hash = ( hash << 5 ) + hash + char;
 	}
+	// eslint-disable-next-line no-bitwise
 	hash = hash >>> 0; // Convert to unsigned 32-bit integer
 	return hash.toString( 16 );
 }
