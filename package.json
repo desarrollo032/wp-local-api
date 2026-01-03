@@ -1,6 +1,6 @@
 {
   "name": "wp-feature-api",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
   "description": "A system for exposing WordPress functionality in a standardized, discoverable way for both server and client-side use",
   "main": "src/index.js",
@@ -58,7 +58,7 @@
     "@wordpress/i18n": "^6.10.0",
     "@wordpress/icons": "^11.4.0",
     "@wordpress/plugins": "^7.30.0",
-    "@automattic/wp-feature-api": "^0.1.10",
+    "@automattic/wp-feature-api": "^0.1.11",
     "node-fetch": "^3.3.2",
     "react-markdown": "^10.1.0"
   },
