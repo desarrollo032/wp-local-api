@@ -47,7 +47,6 @@ verify_zips() {
     local zips=(
         "wp-feature-api.zip"
         "wp-feature-api-agent.zip"
-        "wp-feature-api-demo.zip"
     )
     
     local missing=0
@@ -62,7 +61,7 @@ verify_zips() {
     
     if [ $missing -eq 1 ]; then
         echo ""
-        log_error "Primero ejecuta: ./scripts/package.sh"
+        log_error "Primero ejecuta: npm run package"
         exit 1
     fi
 }
@@ -72,6 +71,12 @@ verify_zips() {
 ###############################################################################
 verify_checksums() {
     log_info "Verificando checksums SHA256..."
+    
+    # Skip checksum verification on Windows (sha256sum not available)
+    if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || command -v powershell.exe &> /dev/null; then
+        log_info "Saltando verificación de checksums en Windows"
+        return 0
+    fi
     
     for zip in "$DIST_DIR"/*.zip; do
         if [ -f "$zip" ]; then
@@ -103,7 +108,38 @@ generate_release_notes() {
     [ -z "$CHANGELOG" ] && CHANGELOG="* No changes from previous version"
     
     cat > "$notes_file" <<EOF
-## Changelog
+## 🚀 WordPress Feature API v0.1.11
+
+### ✨ Nuevas Características
+- **OpenRouter Integration:** Integración completa con OpenRouter API y modelos gratuitos
+- **Chat Interface:** Interfaz de chat moderna integrada en WordPress admin
+- **MCP Support:** Compatibilidad completa con WordPress MCP plugin v0.2.5+
+- **Build Automation:** \`npm run build\` ahora compila y genera ZIPs automáticamente
+
+### 🔧 Mejoras
+- **Simplified Structure:** Reducido de 3 plugins a 2 (eliminado duplicado)
+- **Enhanced Error Handling:** Manejo robusto de diferentes estructuras de respuesta API
+- **Better Debugging:** Logs detallados para troubleshooting
+- **Free Models Priority:** Priorización automática de modelos gratuitos
+- **Optional Dependencies:** Funciona sin dependencia del plugin principal
+
+### 🐛 Correcciones
+- Fixed "Invalid response structure from API proxy" error con OpenRouter
+- Fixed chat no aparecía al instalar plugins
+- Improved asset handling y validación de estructura
+- Better user permission checks
+
+### 📦 Plugins Incluidos
+- **wp-feature-api.zip** - Plugin principal con API de funcionalidades
+- **wp-feature-api-agent.zip** - Proxy AI + Chat interface completo
+
+### 🎯 Modelos Gratuitos Soportados
+- microsoft/phi-3-mini-128k-instruct:free
+- huggingfaceh4/zephyr-7b-beta:free
+- openchat/openchat-7b:free
+- Y 8 modelos gratuitos más...
+
+---
 
 $CHANGELOG
 
@@ -111,11 +147,17 @@ $CHANGELOG
 
 **Full changelog:** https://github.com/Automattic/wp-feature-api/compare/${PREV_TAG:-${VERSION}}...${VERSION}
 
-## Files
+## 📥 Instalación
 
-- wp-feature-api.zip - Main plugin
-- wp-feature-api-agent.zip - Client features plugin
-- wp-feature-api-demo.zip - Demo agent plugin
+1. Descargar los ZIPs desde esta release
+2. Instalar en WordPress: **Plugins → Añadir nuevo → Subir plugin**
+3. Activar ambos plugins
+4. Configurar OpenRouter API key en **Ajustes → WP Feature Agent Demo**
+
+## 🔗 Enlaces Útiles
+- [Documentación](https://github.com/Automattic/wp-feature-api#readme)
+- [OpenRouter API Keys](https://openrouter.ai/)
+- [WordPress MCP Plugin](https://github.com/Automattic/wordpress-mcp)
 EOF
     
     log_success "Notas generadas: release-notes.md"

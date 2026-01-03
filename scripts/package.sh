@@ -196,6 +196,7 @@ create_zip() {
     # Cambiar al directorio temporal para crear ZIP
     cd "$temp_plugin_dir"
     
+    # Intentar usar zip nativo primero
     if command -v zip &> /dev/null; then
         if zip -rq "$zip_path" "$plugin_name"; then
             log_success "ZIP creado: $zip_name"
@@ -205,19 +206,47 @@ create_zip() {
         fi
     fi
     
-    # Fallback a tar+gzip
-    local tgz_name="${zip_name%.zip}.tgz"
-    local tgz_path="$DIST_DIR/$tgz_name"
-    
-    if tar -czf "$tgz_path" "$plugin_name"; then
-        mv "$tgz_path" "$zip_path"
-        log_success "ZIP creado (tar+gzip): $zip_name"
-        cd "$ROOT_DIR"
-        rm -rf "$temp_plugin_dir"
-        return 0
+    # En Windows, usar PowerShell para crear ZIP real
+    if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || command -v powershell.exe &> /dev/null; then
+        local abs_zip_path
+        abs_zip_path=$(realpath "$zip_path")
+        local abs_plugin_dir
+        abs_plugin_dir=$(realpath "$plugin_name")
+        
+        if powershell.exe -Command "Compress-Archive -Path '$abs_plugin_dir' -DestinationPath '$abs_zip_path' -Force" 2>/dev/null; then
+            log_success "ZIP creado (PowerShell): $zip_name"
+            cd "$ROOT_DIR"
+            rm -rf "$temp_plugin_dir"
+            return 0
+        fi
     fi
     
-    log_error "Error al crear $zip_name"
+    # Fallback a Python si está disponible
+    if command -v python3 &> /dev/null; then
+        if python3 -c "
+import zipfile
+import os
+import sys
+
+def create_zip(source_dir, zip_path):
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(source_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, os.path.dirname(source_dir))
+                zipf.write(file_path, arcname)
+
+create_zip('$plugin_name', '$zip_path')
+print('ZIP created successfully')
+" 2>/dev/null; then
+            log_success "ZIP creado (Python): $zip_name"
+            cd "$ROOT_DIR"
+            rm -rf "$temp_plugin_dir"
+            return 0
+        fi
+    fi
+    
+    log_error "Error al crear $zip_name - No se encontró herramienta de compresión compatible"
     cd "$ROOT_DIR"
     rm -rf "$temp_plugin_dir"
     return 1
