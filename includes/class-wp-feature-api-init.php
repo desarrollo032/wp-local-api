@@ -47,15 +47,29 @@ class WP_Feature_API_Init {
 		if ( ! is_admin() ) {
 			return;
 		}
+
+		$build_path = WP_FEATURE_API_PLUGIN_DIR . 'build/index.asset.php';
+		$build_url  = WP_FEATURE_API_PLUGIN_URL . 'build/index.js';
+
+		// Check for distribution structure (client build moved to build/client)
+		if ( file_exists( WP_FEATURE_API_PLUGIN_DIR . 'build/client/index.asset.php' ) ) {
+			$build_path = WP_FEATURE_API_PLUGIN_DIR . 'build/client/index.asset.php';
+			$build_url  = WP_FEATURE_API_PLUGIN_URL . 'build/client/index.js';
+		} elseif ( file_exists( WP_FEATURE_API_PLUGIN_DIR . 'packages/client/build/index.asset.php' ) ) {
+			// Check for repository structure (development)
+			$build_path = WP_FEATURE_API_PLUGIN_DIR . 'packages/client/build/index.asset.php';
+			$build_url  = WP_FEATURE_API_PLUGIN_URL . 'packages/client/build/index.js';
+		}
+
 		// Check for the file before requiring it.
-		if ( ! file_exists( WP_FEATURE_API_PLUGIN_DIR . 'build/index.asset.php' ) ) {
+		if ( ! file_exists( $build_path ) ) {
 			if ( WP_DEBUG ) {
 				wp_trigger_error( '', 'Assets file not found, please run the build for the WordPress Feature API plugin.' );
 			}
 			return;
 		}
-		$assets = require WP_FEATURE_API_PLUGIN_DIR . 'build/index.asset.php';
-		wp_enqueue_script( 'wp-features', WP_FEATURE_API_PLUGIN_URL . 'build/index.js', $assets['dependencies'], $assets['version'], true );
+		$assets = require $build_path;
+		wp_enqueue_script( 'wp-features', $build_url, $assets['dependencies'], $assets['version'], true );
 
 	}
 
@@ -92,7 +106,13 @@ class WP_Feature_API_Init {
 	 * @return void
 	 */
 	public static function load_agent_demo() {
+		// Default path (old or potential future structure).
 		$demo_plugin_file = WP_FEATURE_API_PLUGIN_DIR . 'demo/wp-feature-api-agent/wp-feature-api-agent.php';
+
+		// Repository structure (development).
+		if ( file_exists( WP_FEATURE_API_PLUGIN_DIR . 'packages/demo-agent/wp-feature-api-agent.php' ) ) {
+			$demo_plugin_file = WP_FEATURE_API_PLUGIN_DIR . 'packages/demo-agent/wp-feature-api-agent.php';
+		}
 
 		if ( file_exists( $demo_plugin_file ) ) {
 			require_once $demo_plugin_file;
