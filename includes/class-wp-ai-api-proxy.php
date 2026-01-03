@@ -30,7 +30,7 @@ class WP_AI_API_Proxy {
 	/**
 	 * Default base URL for OpenRouter API (can be overridden in options).
 	 */
-	private const OPENROUTER_API_ROOT = 'https://openrouter.ai/v1/';
+	private const OPENROUTER_API_ROOT = 'https://openrouter.ai/api/v1/';
 
 	/**
 	 * Cache namespace for AI proxy data.
