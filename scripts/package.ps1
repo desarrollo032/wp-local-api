@@ -159,7 +159,10 @@ function New-PluginZip {
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
     
     $PluginDir = Join-Path $TempDir $PluginName
-    Copy-Item $SourceDir $PluginDir -Recurse -Force
+    if (-not (Test-Path $PluginDir)) {
+        New-Item -ItemType Directory -Path $PluginDir -Force | Out-Null
+    }
+    Copy-Item "$SourceDir\*" $PluginDir -Recurse -Force
     
     # Crear ZIP usando PowerShell
     try {
@@ -272,8 +275,8 @@ Copy-WithExclusions (Join-Path $RootDir "packages\demo-agent\build") (Join-Path 
 Copy-WithExclusions (Join-Path $RootDir "packages\client-features\build") (Join-Path $TempDir "build-features")
 
 # Generar ZIP
-if (New-PluginZip $TempDir "wp-feature-api-agent.zip") {
-    Write-Success "wp-feature-api-agent completado"
+if (New-PluginZip $TempDir "wp-feature-api-demo-agent.zip") {
+    Write-Success "wp-feature-api-demo-agent completado"
 } else {
     exit 1
 }
