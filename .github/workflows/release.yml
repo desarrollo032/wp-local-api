@@ -11,9 +11,8 @@
 # 7. Adjunta los ZIPs al release
 #
 # Uso:
-#   git commit -am "Prepare v0.1.10 release"
-#   git tag v0.1.10
-#   git push origin main --tags
+#   git tag -a v0.1.11 -m "Release v0.1.11"
+#   git push origin v0.1.11
 #
 # El workflow se ejecutará automáticamente al hacer push del tag
 
@@ -167,16 +166,20 @@ jobs:
           echo "🔍 Verificando que no hay archivos de desarrollo..."
           
           # Verificar wp-feature-api.zip
-          unzip -l dist/wp-feature-api.zip | grep -E "(node_modules|webpack|tsconfig|\.git)" && {
+          if unzip -l dist/wp-feature-api.zip | grep -E "(node_modules|webpack|tsconfig|\.git)"; then
             echo "❌ Error: Archivos de desarrollo encontrados en wp-feature-api.zip"
             exit 1
-          } || echo "✅ wp-feature-api.zip no contiene archivos de desarrollo"
+          else
+            echo "✅ wp-feature-api.zip no contiene archivos de desarrollo"
+          fi
           
           # Verificar wp-feature-api-agent.zip
-          unzip -l dist/wp-feature-api-agent.zip | grep -E "(node_modules|webpack|tsconfig|\.git)" && {
+          if unzip -l dist/wp-feature-api-agent.zip | grep -E "(node_modules|webpack|tsconfig|\.git)"; then
             echo "❌ Error: Archivos de desarrollo encontrados en wp-feature-api-agent.zip"
             exit 1
-          } || echo "✅ wp-feature-api-agent.zip no contiene archivos de desarrollo"
+          else
+            echo "✅ wp-feature-api-agent.zip no contiene archivos de desarrollo"
+          fi
 
   # ========================================
   # JOB 3: Crear Release en GitHub
@@ -185,9 +188,6 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [build, validate]
-    
-    # Solo ejecutar si es un tag (no en forks anónimos)
-    if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
       # Paso 1: Descargar artifacts
@@ -207,58 +207,53 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       
       # Paso 3: Obtener changelog para esta versión
-      - name: Extract changelog for this version
+      - name: Extract changelog
         id: changelog
         run: |
           VERSION=${{ steps.tag.outputs.VERSION }}
           
           # Extraer sección del CHANGELOG para esta versión
-          CHANGELOG=$(sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$d')
+          # Busca desde el header de la versión hasta el siguiente header
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            $0 ~ /^## \[/ { 
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") {
+                found=1
+                next
+              }
+            }
+            found {
+              if ($0 ~ /^## \[/) exit
+              print
+            }
+          ' CHANGELOG.md)
           
           # Si está vacío, usar mensaje genérico
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="## $VERSION Release\n\nSee https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG_NAME }} for details."
           fi
           
-          # Guardar en variable de salida
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Guardar en variable de salida (escapando correctamente)
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          echo "content=$CHANGELOG" >> $GITHUB_OUTPUT
       
-      # Paso 4: Crear el release (usando gh CLI)
+      # Paso 4: Crear el release con softprops/action-gh-release
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.TAG_NAME }}
-          release_name: Release ${{ steps.tag.outputs.TAG_NAME }}
+          name: Release ${{ steps.tag.outputs.TAG_NAME }}
           body: ${{ steps.changelog.outputs.content }}
           draft: false
           prerelease: false
+          files: |
+            dist/wp-feature-api.zip
+            dist/wp-feature-api-agent.zip
+          generate_release_notes: false
       
-      # Paso 5: Subir assets al release
-      - name: Upload main plugin ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/wp-feature-api.zip
-          asset_name: wp-feature-api.zip
-          asset_content_type: application/zip
-      
-      - name: Upload demo agent ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/wp-feature-api-agent.zip
-          asset_name: wp-feature-api-agent.zip
-          asset_content_type: application/zip
-      
-      # Paso 6: Verificar release creado
+      # Paso 5: Verificar release creado
       - name: Verify release
         run: |
           echo "✅ Release creado exitosamente!"

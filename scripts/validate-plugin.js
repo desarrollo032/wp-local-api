@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const REQUIRED_HEADERS = [
     'Plugin Name',
@@ -30,18 +31,8 @@ const FORBIDDEN_PATTERNS = [
     /webpack\.config\.js/,
     /\.DS_Store/,
     /Thumbs\.db/,
-];
-
-const REQUIRED_FILES = [
-    'wp-feature-api.php',
-];
-
-const VALID_PLUGIN_HEADERS = [
-    'Plugin Name',
-    'Version',
-    'Author',
-    'License',
-    'Text Domain',
+    /\.map$/,
+    /\.d\.ts$/,
 ];
 
 /**
@@ -78,7 +69,7 @@ function validateFileStructure(pluginDir) {
     
     const errors = [];
     const warnings = [];
-    const foundFiles = [];
+    let fileCount = 0;
     
     function scanDir(dir, baseDir = dir) {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -94,7 +85,7 @@ function validateFileStructure(pluginDir) {
                 }
                 scanDir(fullPath, baseDir);
             } else {
-                foundFiles.push(relativePath);
+                fileCount++;
                 
                 // Verificar patrones prohibidos
                 for (const pattern of FORBIDDEN_PATTERNS) {
@@ -112,7 +103,7 @@ function validateFileStructure(pluginDir) {
         valid: errors.length === 0, 
         errors, 
         warnings,
-        fileCount: foundFiles.length 
+        fileCount 
     };
 }
 
@@ -135,58 +126,25 @@ function validateRequiredFiles(pluginDir, requiredFiles) {
 }
 
 /**
- * Verificar estructura del ZIP (antes de comprimir)
+ * Calcular hash SHA256 del archivo
  */
-function validateZipStructure(pluginDir) {
-    console.log(`\n📦 Validando estructura del plugin...`);
-    
-    const errors = [];
-    const info = [];
-    
-    // El directorio debe tener el mismo nombre que el archivo principal
-    const dirName = path.basename(pluginDir);
-    
-    // Verificar que el directorio no contenga espacios o caracteres especiales
-    if (/[^a-z0-9\-_]/.test(dirName)) {
-        errors.push(`Nombre del directorio contiene caracteres inválidos: ${dirName}`);
+function calculateSHA256(filePath) {
+    try {
+        const content = fs.readFileSync(filePath);
+        const crypto = require('crypto');
+        return crypto.createHash('sha256').update(content).digest('hex');
+    } catch (e) {
+        return null;
     }
-    
-    // Contar archivos
-    let fileCount = 0;
-    let dirCount = 0;
-    
-    function count(dir) {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const entry of entries) {
-            if (entry.isDirectory()) {
-                dirCount++;
-                count(path.join(dir, entry.name));
-            } else {
-                fileCount++;
-            }
-        }
-    }
-    
-    count(pluginDir);
-    
-    info.push(`Archivos: ${fileCount}`);
-    info.push(`Directorios: ${dirCount}`);
-    
-    // Verificar que hay archivos PHP
-    const hasPhp = foundFiles => foundFiles.some(f => f.endsWith('.php'));
-    if (!hasPhp([...foundFiles])) {
-        errors.push('No se encontraron archivos PHP');
-    }
-    
-    return { valid: errors.length === 0, errors, info };
 }
 
 /**
  * Generar reporte de validación
  */
 function generateReport(pluginDir, results) {
+    const pluginName = path.basename(pluginDir);
     console.log('\n' + '='.repeat(60));
-    console.log(`📋 REPORTE DE VALIDACIÓN: ${path.basename(pluginDir)}`);
+    console.log(`📋 REPORTE DE VALIDACIÓN: ${pluginName}`);
     console.log('='.repeat(60));
     
     let allValid = true;
@@ -258,7 +216,7 @@ function main() {
     // Ejecutar validaciones
     const results = {
         header: validateMainHeader(mainFilePath),
-        required: validateRequiredFiles(pluginDir, REQUIRED_FILES),
+        required: validateRequiredFiles(pluginDir, [mainFile]),
         structure: validateFileStructure(pluginDir),
     };
     
@@ -270,12 +228,16 @@ function main() {
     process.exit(isValid ? 0 : 1);
 }
 
+// Exportar para uso como módulo
 module.exports = {
     validateMainHeader,
     validateFileStructure,
     validateRequiredFiles,
-    validateZipStructure,
     generateReport,
 };
 
-main();
+// Ejecutar si es el script principal
+if (require.main === module) {
+    main();
+}
+

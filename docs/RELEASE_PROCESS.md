@@ -1,73 +1,48 @@
-# Proceso de Release Automatizado - WordPress Feature API
+# Proceso de Release Automatizado
 
-## 📋 Resumen
+Este documento describe el proceso de release automatizado para el plugin WordPress Feature API.
 
-Este documento describe el proceso para crear un release del plugin WordPress Feature API.
+## Flujo de Release
 
-El sistema ahora está completamente automatizado mediante GitHub Actions:
-1. Al hacer push de un tag con formato `v*`, se ejecutará el workflow
-2. Se construirán los assets de JavaScript
-3. Se generarán los ZIPs de los plugins
-4. Se validará la estructura de WordPress
-5. Se creará automáticamente el GitHub Release con los ZIPs adjuntos
+### 📋 Resumen del Workflow
+
+El workflow `.github/workflows/release.yml` automatiza completamente el proceso de release:
+
+1. **Trigger**: Se ejecuta automáticamente al hacer push de un tag con formato `v*`
+2. **Build**: Instala dependencias, compila assets JS/Webpack
+3. **Empaquetado**: Genera los ZIPs de los plugins
+4. **Validación**: Verifica estructura correcta (carpeta raíz, archivo PHP, sin archivos de desarrollo)
+5. **Release**: Crea el release en GitHub con los ZIPs adjuntos
 
 ---
 
-## 🚀 Pasos para Crear un Release
+## 🚀 Comandos para Crear un Release
 
-### 1. Actualizar la versión en los archivos
-
-```bash
-# Actualizar wp-feature-api.php
-# Cambiar: Version: X.X.X
-# Cambiar: $wp_feature_api_version = 'X.X.X'
-
-# Actualizar package.json (root)
-# Cambiar: "version": "X.X.X"
-
-# Actualizar packages/*/package.json según corresponda
-```
-
-### 2. Actualizar el CHANGELOG.md
-
-Agregar la nueva sección de versión al inicio del archivo:
-
-```markdown
-## [X.X.X] - YYYY-MM-DD
-
-### Nuevas funcionalidades
-- Descripción...
-
-### Bug fixes
-- Descripción...
-
-### Cambios
-- Descripción...
-```
-
-### 3. Hacer commit de los cambios
+### Paso 1: Actualizar versión en los archivos
 
 ```bash
-git add -A
-git commit -m "Prepare release vX.X.X"
+# Editar version en package.json (minor/patch según corresponda)
+npm version patch  # o minor, o major
+
+# Esto crea automáticamente un commit y un tag
 ```
 
-### 4. Crear el tag y hacer push
+### Paso 2: Hacer push del tag
 
 ```bash
-# Crear tag semántico
-git tag vX.X.X
-
-# Push de cambios y tags
-git push origin main --tags
+# Push de tags a GitHub
+git push origin --tags
 ```
 
-### 5. Esperar la ejecución del workflow
+### Alternativa: Crear tag manualmente
 
-1. Ve a https://github.com/desarrollo032/wp-feature-api/actions
-2. Observa la ejecución del workflow "Release Plugin"
-3. Cuando termine, el release estará disponible en:
-   https://github.com/desarrollo032/wp-feature-api/releases
+```bash
+# Crear tag anotado
+git tag -a v0.1.11 -m "Release v0.1.11"
+
+# Hacer push del tag
+git push origin v0.1.11
+```
 
 ---
 
@@ -75,95 +50,142 @@ git push origin main --tags
 
 El workflow genera dos archivos ZIP:
 
-| Archivo | Plugin | Descripción |
-|---------|--------|-------------|
-| `wp-feature-api.zip` | WordPress Feature API | Plugin principal con SDK del cliente |
-| `wp-feature-api-agent.zip` | WP Feature API Agent | Plugin demo con agente de IA |
+### 1. wp-feature-api.zip
+- **Propósito**: Plugin principal de la API
+- **Carpeta raíz**: `wp-feature-api/`
+- **Archivo principal**: `wp-feature-api.php`
+- **Incluye**:
+  - `includes/` - Classes principales
+  - `build/client/` - SDK cliente compilado
+  - `build/client-features/` - Componentes Blocks
+
+### 2. wp-feature-api-agent.zip
+- **Propósito**: Plugin demo con agente AI
+- **Carpeta raíz**: `wp-feature-api-agent/`
+- **Archivo principal**: `wp-feature-api-agent.php`
+- **Incluye**:
+  - `includes/` - Clases del proxy AI
+  - `build/` - Assets JS compilados
+  - `vendor/@automattic/wp-feature-api/` - SDK como dependencia
 
 ---
 
-## ✅ Validaciones Automáticas
+## ✅ Validaciones Realizadas
 
-El sistema valida que los ZIPs cumplan con las reglas de WordPress:
+El workflow verifica:
 
-- [x] Carpeta raíz con el slug del plugin
-- [x] Archivo principal `.php` en la raíz
-- [x] Headers requeridos (Plugin Name, Version, Author, etc.)
-- [x] Protección `ABSPATH` en el archivo principal
-- [x] No incluye `node_modules`
-- [x] No incluye archivos de configuración (webpack, tsconfig, etc.)
-- [x] No incluye archivos de Git
+1. **Estructura ZIP**:
+   - ✅ Carpeta raíz con nombre correcto
+   - ✅ Archivo `.php` principal en la raíz
+   - ✅ No incluye `node_modules/`
+   - ✅ No incluye archivos de configuración (`webpack.config.js`, `tsconfig.json`, etc.)
+   - ✅ No incluye archivos `.map` ni `.d.ts`
+
+2. **Headers del Plugin**:
+   - ✅ `Plugin Name:` presente
+   - ✅ `Version:` presente
+   - ✅ Protección `ABSPATH` verificada
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Configuración de GitHub Actions
+
+### Permisos Requeridos
+
+El workflow requiere los siguientes permisos en Settings > Actions > General:
+
+```yaml
+permissions:
+  contents: write
+  packages: read
+```
+
+### Secrets Opcionales
+
+No se requieren secrets adicionales. El workflow usa:
+- `GITHUB_TOKEN`: Automático para Actions
+- `NODE_AUTH_TOKEN`: Si se usan paquetes privados de npm
+
+---
+
+## 📝 CHANGELOG
+
+El release usa automáticamente el CHANGELOG.md. Formato esperado:
+
+```markdown
+## [0.1.11] - 2025-01-15
+
+### Nuevas funcionalidades
+- Feature A añadida
+- Feature B mejorada
+
+### Bug fixes
+- Corrección en X
+```
+
+El script extrae automáticamente la sección entre `## [VERSION]` y el siguiente `## [`].
+
+---
+
+## 🐛 Solución de Problemas
 
 ### El workflow no se ejecuta
-- Verifica que el tag comience con `v` (ej: `v0.1.10`)
-- Verifica que el tag haya sido pusheado a GitHub
 
-### Error en el build
-- Verifica que `npm ci` funcione localmente
-- Verifica que `npm run build` funcione localmente
+1. Verificar que el tag comience con `v`: `v0.1.11`
+2. Verificar permisos: Settings > Actions > General > Workflow permissions
+3. Revisar que no sea un fork anónimo (en forks, los tags también disparan)
 
 ### Error en validación
-- Verifica que el CHANGELOG tenga el formato correcto
-- Verifica que la versión en PHP coincida con el tag
+
+```bash
+# Probar localmente
+npm ci
+npm run build
+npm run build:plugins
+unzip -l dist/wp-feature-api.zip | grep -E "(node_modules|webpack)"
+```
+
+### Error al crear release
+
+Verificar que `softprops/action-gh-release@v2` esté disponible y los permisos de escritura.
 
 ---
 
-## 📝 Ejemplo Completo para v0.1.10
+## 📊 États del Workflow
+
+| Job | Descripción | Estado |
+|-----|-------------|--------|
+| `build` | Compila y genera ZIPs | ✅ Requerido |
+| `validate` | Verifica estructura | ✅ Requerido |
+| `release` | Crea GitHub Release | ✅ Final |
+| `notify` | Mensaje de éxito | Opcional |
+
+---
+
+## 🔄 Actualizar Dependencias
+
+Antes de un release mayor:
 
 ```bash
-# 1. Actualizar versión en wp-feature-api.php
-# Cambiar Version: 0.1.10 y $wp_feature_api_version = '0.1.10'
+# Actualizar todos los paquetes
+npm update
 
-# 2. Actualizar package.json
-# Cambiar "version": "0.1.10"
+# Actualizar paquetes de WordPress específicamente
+npm run packages-update
 
-# 3. Actualizar packages/*/package.json según corresponda
-
-# 4. Actualizar CHANGELOG.md
-
-# 5. Commit
-git add -A
-git commit -m "Prepare release v0.1.10"
-
-# 6. Tag y push
-git tag v0.1.10
-git push origin main --tags
-
-# 7. Verificar en GitHub Actions
-# Ir a: https://github.com/desarrollo032/wp-feature-api/actions
-
-# 8. Verificar release
-# Ir a: https://github.com/desarrollo032/wp-feature-api/releases/tag/v0.1.10
+# Verificar que todo compila
+npm run build
 ```
 
 ---
 
-## 📂 Archivos del Sistema
+## 📦 Notas de Deployment
 
-| Archivo | Descripción |
-|---------|-------------|
-| `.github/workflows/release.yml` | Workflow principal de GitHub Actions |
-| `scripts/create-plugins-zip.js` | Script Node.js para generar ZIPs |
-| `scripts/validate-plugin.js` | Script de validación de estructura |
-| `package.json` | Scripts de build: `npm run build:plugins` |
+Los ZIPs generados son **100% instalables en WordPress**:
 
----
+1. Descargar desde la página de Releases
+2. Ir a Plugins > Añadir nuevo > Subir plugin
+3. Instalar y activar
 
-## 🔗 Enlaces Rápidos
-
-- **GitHub Actions**: https://github.com/desarrollo032/wp-feature-api/actions
-- **Releases**: https://github.com/desarrollo032/wp-feature-api/releases
-- **Tags**: https://github.com/desarrollo032/wp-feature-api/tags
-
----
-
-## 📌 Notas
-
-- El workflow usa `actions/create-release@v1` que está deprecated
-- Para producción, considerar migrar a `softprops/action-gh-release` o API REST
-- Los artifacts se eliminan después de 5 días para ahorrar espacio
+No requieren pasos adicionales de build.
 
