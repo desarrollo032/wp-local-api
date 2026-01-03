@@ -25,7 +25,7 @@ class WP_AI_API_Proxy {
 	/**
 	 * Supported AI API service providers.
 	 */
-	private const SUPPORTED_AI_API_SERVICES = [ 'openai', 'openrouter' ];
+	private const SUPPORTED_AI_API_SERVICES = [ 'openai', 'openrouter', 'gemini' ];
 
 	/**
 	 * Base URL for the OpenAI API.
@@ -36,6 +36,11 @@ class WP_AI_API_Proxy {
 	 * Default base URL for OpenRouter API (can be overridden in options).
 	 */
 	private const OPENROUTER_API_ROOT = 'https://openrouter.ai/api/v1/';
+	
+	/**
+	 * Base URL for the Google Gemini API (OpenAI Compatibility).
+	 */
+	private const GEMINI_API_ROOT = 'https://generativelanguage.googleapis.com/v1beta/openai/';
 
 	/**
 	 * Cache namespace for AI proxy data.
@@ -292,6 +297,9 @@ class WP_AI_API_Proxy {
 			case 'openrouter':
 				$all_defined = ! empty( WP_AI_API_Options::get_openrouter_api_key() );
 				break;
+			case 'gemini':
+				$all_defined = ! empty( WP_AI_API_Options::get_gemini_api_key() );
+				break;
 			case 'openai':
 			default:
 				$all_defined = ! empty( WP_AI_API_Options::get_openai_api_key() );
@@ -373,6 +381,7 @@ class WP_AI_API_Proxy {
 					if ( $a->provider_name !== 'openrouter' && $b->provider_name === 'openrouter' ) return 1;
 				}
 			}
+			}
 			return 0;
 		});
 
@@ -449,6 +458,10 @@ class WP_AI_API_Proxy {
 				}
 				$target_url  = esc_url_raw( rtrim( $host, '/' ) . '/' . ltrim( $api_path, '/' ) );
 				$auth_header = sprintf( 'Bearer %s', WP_AI_API_Options::get_openrouter_api_key() );
+				break;
+			case 'gemini':
+				$target_url  = esc_url_raw( self::GEMINI_API_ROOT . $api_path );
+				$auth_header = sprintf( 'Bearer %s', WP_AI_API_Options::get_gemini_api_key() );
 				break;
 			case 'openai':
 			default:
@@ -620,6 +633,9 @@ class WP_AI_API_Proxy {
 			case 'openrouter':
 				$api_key = WP_AI_API_Options::get_openrouter_api_key();
 				break;
+			case 'gemini':
+				$api_key = WP_AI_API_Options::get_gemini_api_key();
+				break;
 			case 'openai':
 			default:
 				$api_key = WP_AI_API_Options::get_openai_api_key();
@@ -651,6 +667,13 @@ class WP_AI_API_Proxy {
 					$host = self::OPENROUTER_API_ROOT;
 				}
 				$api_path = esc_url_raw( rtrim( $host, '/' ) . '/models' );
+				break;
+			case 'gemini':
+				$headers = array(
+					'Authorization' => sprintf( 'Bearer %s', WP_AI_API_Options::get_gemini_api_key() ),
+					'User-Agent'    => 'WordPress AI API Proxy/' . WP_AI_API_PROXY_VERSION,
+				);
+				$api_path = esc_url_raw( self::GEMINI_API_ROOT . 'models' );
 				break;
 			case 'openai':
 			default:
