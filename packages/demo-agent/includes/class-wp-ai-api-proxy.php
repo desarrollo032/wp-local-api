@@ -142,6 +142,19 @@ class WP_AI_API_Proxy {
 			)
 		);
 
+		// Specific route for chat completions (most commonly used endpoint)
+		// This must be registered before the catch-all route
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/chat/completions',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'ai_api_chat_completions' ),
+				'permission_callback' => array( $this, 'check_permissions' ),
+			)
+		);
+
+		// Catch-all route for other AI API endpoints (must be registered last)
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base . '/(?P<api_path>.*)',
@@ -289,6 +302,21 @@ class WP_AI_API_Proxy {
 		$code   = $all_defined ? 200 : 500;
 
 		return new WP_REST_Response( array( 'status' => $status ), $code );
+	}
+
+	/**
+	 * Chat completions endpoint callback.
+	 * Proxies chat completion requests to the configured AI service.
+	 *
+	 * @param WP_REST_Request $request Incoming request data.
+	 * @return WP_Error|WP_REST_Response Proxied response or error.
+	 */
+	public function ai_api_chat_completions( WP_REST_Request $request ) {
+		// Create a new request with the api_path parameter set to 'chat/completions'
+		$request->set_param( 'api_path', 'chat/completions' );
+		
+		// Delegate to the generic proxy method
+		return $this->ai_api_proxy( $request );
 	}
 
 	/**

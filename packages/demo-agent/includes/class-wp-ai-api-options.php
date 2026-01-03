@@ -41,6 +41,13 @@ class WP_AI_API_Options {
 	const PROVIDER_OPTION_NAME = 'wp_ai_api_proxy_provider';
 
 	/**
+	 * Option name for WordPress MCP authentication token.
+	 *
+	 * @var string
+	 */
+	const MCP_TOKEN_OPTION_NAME = 'wp_ai_api_proxy_mcp_token';
+
+	/**
 	 * Settings page slug.
 	 *
 	 * @var string
@@ -113,25 +120,34 @@ class WP_AI_API_Options {
 			)
 		);
 
-		add_settings_section(
-			'wp_ai_api_proxy_api_section',
-			__( 'API Settings', 'wp-feature-api-agent' ),
-			array( $this, 'render_api_section_description' ),
-			self::OPTION_PAGE
+		register_setting(
+			self::OPTION_PAGE,
+			self::MCP_TOKEN_OPTION_NAME,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			)
 		);
 
-		add_settings_field(
-			'openai_api_key',
-			__( 'OpenAI API Key', 'wp-feature-api-agent' ),
-			array( $this, 'render_openai_api_key_field' ),
-			self::OPTION_PAGE,
-			'wp_ai_api_proxy_api_section'
+		add_settings_section(
+			'wp_ai_api_proxy_api_section',
+			__( 'AI API Settings', 'wp-feature-api-agent' ),
+			array( $this, 'render_api_section_description' ),
+			self::OPTION_PAGE
 		);
 
 		add_settings_field(
 			'provider_select',
 			__( 'AI Provider', 'wp-feature-api-agent' ),
 			array( $this, 'render_provider_select_field' ),
+			self::OPTION_PAGE,
+			'wp_ai_api_proxy_api_section'
+		);
+
+		add_settings_field(
+			'openai_api_key',
+			__( 'OpenAI API Key', 'wp-feature-api-agent' ),
+			array( $this, 'render_openai_api_key_field' ),
 			self::OPTION_PAGE,
 			'wp_ai_api_proxy_api_section'
 		);
@@ -150,6 +166,21 @@ class WP_AI_API_Options {
 			array( $this, 'render_openrouter_api_host_field' ),
 			self::OPTION_PAGE,
 			'wp_ai_api_proxy_api_section'
+		);
+
+		add_settings_section(
+			'wp_ai_api_proxy_mcp_section',
+			__( 'WordPress MCP Settings', 'wp-feature-api-agent' ),
+			array( $this, 'render_mcp_section_description' ),
+			self::OPTION_PAGE
+		);
+
+		add_settings_field(
+			'mcp_token',
+			__( 'MCP Authentication Token', 'wp-feature-api-agent' ),
+			array( $this, 'render_mcp_token_field' ),
+			self::OPTION_PAGE,
+			'wp_ai_api_proxy_mcp_section'
 		);
 	}
 
