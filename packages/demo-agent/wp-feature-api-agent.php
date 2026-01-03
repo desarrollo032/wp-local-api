@@ -3,7 +3,7 @@
  * Plugin Name: WP Feature API - AI Agent Proxy
  * Plugin URI: https://github.com/Automattic/wp-feature-api
  * Description: Provides a REST API proxy for interacting with external AI services.
- * Version: 0.1.0
+ * Version: 0.1.11
  * Author: Automattic AI
  * Author URI: https://automattic.ai/
  * Text Domain: wp-feature-api-agent
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'WP_AI_API_PROXY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_AI_API_PROXY_URL', plugin_dir_url( __FILE__ ) );
-define( 'WP_AI_API_PROXY_VERSION', '0.1.0' );
+define( 'WP_AI_API_PROXY_VERSION', '0.1.11' );
 
 // Include the main proxy class.
 require_once WP_AI_API_PROXY_PATH . 'includes/class-wp-ai-api-proxy.php';
