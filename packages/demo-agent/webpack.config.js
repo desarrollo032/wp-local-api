@@ -1,6 +1,7 @@
 /**
  * WordPress dependencies
  */
+// eslint-disable-next-line import/no-extraneous-dependencies
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 /**
  * External dependencies
@@ -28,4 +29,3 @@ module.exports = {
 		},
 	},
 };
-

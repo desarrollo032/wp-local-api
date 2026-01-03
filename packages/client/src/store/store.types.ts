@@ -8,6 +8,7 @@
  * Type for StoreDescriptor from @wordpress/data
  * In @wordpress/data >= 10.x, StoreDescriptor is a simple object with a name property
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface WPStoreDescriptor< State = any > {
 	name: string;
 }
@@ -18,7 +19,9 @@ export interface WPStoreDescriptor< State = any > {
 export interface WPStore< State = any > {
 	dispatch: ( action: any ) => any;
 	select: ( selector: string | WPStoreDescriptor< State > ) => any;
-	resolveSelect: ( selector: string | WPStoreDescriptor< State > ) => Promise< any >;
+	resolveSelect: (
+		selector: string | WPStoreDescriptor< State >
+	) => Promise< any >;
 	getState: () => State;
 }
 
@@ -37,7 +40,9 @@ export interface WPReduxStoreConfig< State = any > {
 /**
  * Type helper for WordPress store selectors
  */
-export type WPSelectorResult< T > = T extends ( state: any, ...args: infer Args ) => infer Return
+export type WPSelectorResult< T > = T extends (
+	state: any,
+	...args: infer Args
+) => infer Return
 	? ( ...args: Args ) => Return
 	: never;
-

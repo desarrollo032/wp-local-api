@@ -74,4 +74,3 @@ if ( ! isStoreRegistered() ) {
 
 // Export store type for external usage
 export type WPFeatureStore = typeof store;
-

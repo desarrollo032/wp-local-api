@@ -2,8 +2,12 @@
  * WordPress dependencies
  */
 import { useState, useRef, useEffect } from '@wordpress/element';
-import { Button, TextareaControl, Icon } from '@wordpress/components';
-import { SelectControl } from '@wordpress/components';
+import {
+	Button,
+	TextareaControl,
+	Icon,
+	SelectControl,
+} from '@wordpress/components';
 import { arrowRight, trash, chevronDown, chevronUp } from '@wordpress/icons';
 
 /**
@@ -18,7 +22,16 @@ import {
 import { McpStatusIndicator } from './McpStatusIndicator';
 
 export const ChatApp = () => {
-	const { messages, sendMessage, isLoading, clearConversation, models, selectedModel, setSelectedModel, mcpStatus } = useConversation();
+	const {
+		messages,
+		sendMessage,
+		isLoading,
+		clearConversation,
+		models,
+		selectedModel,
+		setSelectedModel,
+		mcpStatus,
+	} = useConversation();
 	const [ input, setInput ] = useState( '' );
 	const [ isMinimized, setIsMinimized ] = useState( false );
 	const messagesEndRef = useRef< HTMLDivElement | null >( null );
@@ -58,7 +71,10 @@ export const ChatApp = () => {
 						<SelectControl
 							value={ selectedModel ?? '' }
 							onChange={ ( val ) => setSelectedModel( val ) }
-							options={ models.map( ( m ) => ( { label: `${ m.id } (${ m.owned_by ?? '' })`, value: m.id } ) ) }
+							options={ models.map( ( m ) => ( {
+								label: `${ m.id } (${ m.owned_by ?? '' })`,
+								value: m.id,
+							} ) ) }
 						/>
 					</div>
 				) }

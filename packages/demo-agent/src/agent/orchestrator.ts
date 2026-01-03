@@ -66,7 +66,13 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 
 		const systemMessage: Message = {
 			role: 'system',
-			content: generateSystemPrompt( mcpStatus || { is_active: false, tools_count: 0, status: 'inactive' } ),
+			content: generateSystemPrompt(
+				mcpStatus || {
+					is_active: false,
+					tools_count: 0,
+					status: 'inactive',
+				}
+			),
 		};
 
 		// If the first message in currentMessages is already a system message, don't add another one

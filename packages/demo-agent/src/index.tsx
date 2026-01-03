@@ -1,8 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { createRoot } from '@wordpress/element';
-import { useEffect, useRef } from '@wordpress/element';
+import { createRoot, useEffect, useRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -20,7 +19,9 @@ const ChatRoot = () => {
 
 	useEffect( () => {
 		// Find the container in the DOM
-		const container = document.getElementById( 'wp-feature-api-agent-chat' );
+		const container = document.getElementById(
+			'wp-feature-api-agent-chat'
+		);
 
 		if ( container && ! rootRef.current ) {
 			rootRef.current = createRoot( container );
@@ -48,7 +49,9 @@ if ( typeof window !== 'undefined' ) {
 	// Try to mount immediately if DOM is ready
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', () => {
-			const mountPoint = document.getElementById( 'wp-feature-api-agent-chat' );
+			const mountPoint = document.getElementById(
+				'wp-feature-api-agent-chat'
+			);
 			if ( mountPoint ) {
 				const root = createRoot( mountPoint );
 				root.render( <ChatRoot /> );
@@ -56,13 +59,17 @@ if ( typeof window !== 'undefined' ) {
 		} );
 	} else {
 		// DOM already loaded, mount immediately
-		const mountPoint = document.getElementById( 'wp-feature-api-agent-chat' );
+		const mountPoint = document.getElementById(
+			'wp-feature-api-agent-chat'
+		);
 		if ( mountPoint ) {
 			const root = createRoot( mountPoint );
 			root.render( <ChatRoot /> );
 		} else {
 			// eslint-disable-next-line no-console
-			console.warn( 'Chat container #wp-feature-api-agent-chat not found in admin footer' );
+			console.warn(
+				'Chat container #wp-feature-api-agent-chat not found in admin footer'
+			);
 		}
 	}
 }

@@ -1,8 +1,9 @@
 /**
  * WordPress dependencies
  */
-import type { store as coreStore } from '@wordpress/core-data';
-import type { store as featureStore } from './store';
+// Removed unused imports
+// import type { store as coreStore } from '@wordpress/core-data';
+// import type { store as featureStore } from './store';
 
 /**
  * Internal dependencies
@@ -10,11 +11,12 @@ import type { store as featureStore } from './store';
 
 /**
  * Type definition for the WordPress registry
+ * (Kept for future reference or if needed, but currently unused locally)
  */
-type RegistryDispatch = {
-	dispatch: ( storeName: any ) => any;
-	select: ( storeName: any ) => any;
-};
+// type RegistryDispatch = {
+// 	dispatch: ( storeName: any ) => any;
+// 	select: ( storeName: any ) => any;
+// };
 
 /**
  * Type for the context passed to feature callbacks
@@ -29,12 +31,12 @@ type FeatureCallbackContext = {
 /**
  * Select function type for WordPress stores
  */
-type SelectFunction = ( storeName: string | any ) => any;
+// type SelectFunction = ( storeName: string | any ) => any;
 
 /**
  * Dispatch function type for WordPress stores
  */
-type DispatchFunction = ( storeName: string | any ) => any;
+// type DispatchFunction = ( storeName: string | any ) => any;
 
 export interface Feature {
 	id: string;
@@ -64,4 +66,3 @@ export interface FeaturesState {
 declare global {
 	const ajaxurl: string | undefined;
 }
-

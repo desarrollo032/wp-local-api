@@ -4,7 +4,7 @@
  * Provides tools from the wordpress-mcp plugin when it's installed and active.
  * Falls back gracefully when MCP is not available.
  *
- * @package WordPress\Feature_API_Agent
+ * @package
  */
 
 import type { Tool, ToolResult } from '../types/messages';
@@ -62,25 +62,28 @@ export const createMcpToolProvider = (
 ): ToolProvider => {
 	/**
 	 * Custom API client or default wp.apiFetch.
+	 * @param endpoint
 	 */
-	const apiClient = config.apiClient ?? ( async ( endpoint: string ) => {
-		const wpApiFetch = ( window as any ).wp?.apiFetch;
-		if ( ! wpApiFetch ) {
-			throw new Error(
-				'wp.apiFetch is not available. Ensure script dependencies are loaded.'
-			);
-		}
-		return await wpApiFetch( { path: endpoint } );
-	} );
+	const apiClient =
+		config.apiClient ??
+		( async ( endpoint: string ) => {
+			const wpApiFetch = ( window as any ).wp?.apiFetch;
+			if ( ! wpApiFetch ) {
+				throw new Error(
+					'wp.apiFetch is not available. Ensure script dependencies are loaded.'
+				);
+			}
+			return await wpApiFetch( { path: endpoint } );
+		} );
 
 	/**
 	 * Checks if the MCP plugin is active and returns its status.
 	 */
 	const checkMcpStatus = async (): Promise< McpStatus > => {
 		try {
-			const response = await apiClient(
+			const response = ( await apiClient(
 				'/wp/v2/ai-api-proxy/v1/mcp/status'
-			) as McpStatus;
+			) ) as McpStatus;
 			return response;
 		} catch ( error ) {
 			// eslint-disable-next-line no-console
@@ -110,9 +113,9 @@ export const createMcpToolProvider = (
 			}
 
 			// Fetch tools from MCP server
-			const response = await apiClient(
+			const response = ( await apiClient(
 				'/wp/v2/ai-api-proxy/v1/mcp/tools'
-			) as McpToolsResponse;
+			) ) as McpToolsResponse;
 
 			if ( response.error ) {
 				// eslint-disable-next-line no-console
@@ -137,12 +140,12 @@ export const createMcpToolProvider = (
 						): Promise< ToolResult > => {
 							try {
 								// Execute MCP tool via REST API
-								const wpApiFetch = ( window as any ).wp?.apiFetch;
+								const wpApiFetch = ( window as any ).wp
+									?.apiFetch;
 								if ( ! wpApiFetch ) {
 									return {
 										result: null,
-										error:
-											'wp.apiFetch is not available',
+										error: 'wp.apiFetch is not available',
 									};
 								}
 
@@ -236,4 +239,3 @@ export const getMcpStatus = async (): Promise< McpStatus > => {
 		};
 	}
 };
-

@@ -4,10 +4,10 @@
  * Displays the current status of the wordpress-mcp plugin connection.
  * Shows a visual indicator (green = connected, gray = inactive).
  *
- * @package WordPress\Feature_API_Agent
+ * @package
  */
 
-import { useState, useEffect } from '@wordpress/element';
+import { useState } from '@wordpress/element';
 import { Tooltip } from '@wordpress/components';
 import type { McpStatus } from '../context/ConversationProvider';
 
@@ -17,6 +17,8 @@ interface McpStatusIndicatorProps {
 
 /**
  * Icon component for MCP status - shows connection state.
+ * @param root0
+ * @param root0.isActive
  */
 const McpStatusIcon = ( { isActive }: { isActive: boolean } ) => {
 	if ( isActive ) {
@@ -44,7 +46,13 @@ const McpStatusIcon = ( { isActive }: { isActive: boolean } ) => {
 					strokeLinecap="round"
 					strokeLinejoin="round"
 				/>
-				<circle cx="10" cy="10" r="3" fill="#10B981" className="pulse-dot" />
+				<circle
+					cx="10"
+					cy="10"
+					r="3"
+					fill="#10B981"
+					className="pulse-dot"
+				/>
 			</svg>
 		);
 	}
@@ -79,6 +87,7 @@ const McpStatusIcon = ( { isActive }: { isActive: boolean } ) => {
 
 /**
  * Get tooltip text based on MCP status.
+ * @param status
  */
 const getTooltipText = ( status: McpStatus ): string => {
 	if ( status.is_active && status.status === 'connected' ) {
@@ -87,7 +96,9 @@ const getTooltipText = ( status: McpStatus ): string => {
 				status.version ? ` - v${ status.version }` : ''
 			}`;
 		}
-		return `MCP Connected${ status.version ? ` - v${ status.version }` : '' }`;
+		return `MCP Connected${
+			status.version ? ` - v${ status.version }` : ''
+		}`;
 	}
 
 	return 'MCP is not active. Install wordpress-mcp plugin to enable automatic WordPress actions.';
@@ -95,20 +106,18 @@ const getTooltipText = ( status: McpStatus ): string => {
 
 /**
  * McpStatusIndicator Component
+ * @param root0
+ * @param root0.status
  */
 export const McpStatusIndicator = ( { status }: McpStatusIndicatorProps ) => {
-	const [ isTooltipVisible, setIsTooltipVisible ] = useState( false );
+	const [ , setIsTooltipVisible ] = useState( false );
 
 	const tooltipText = getTooltipText( status );
 	const isActive = status.is_active && status.status === 'connected';
 
 	return (
 		<div className="mcp-status-indicator">
-			<Tooltip
-				text={ tooltipText }
-				position="bottom left"
-				delay={ 300 }
-			>
+			<Tooltip text={ tooltipText } position="bottom left" delay={ 300 }>
 				<div
 					className={ `mcp-status-indicator-wrapper ${
 						isActive ? 'connected' : 'inactive'
@@ -131,4 +140,3 @@ export const McpStatusIndicator = ( { status }: McpStatusIndicatorProps ) => {
 };
 
 export default McpStatusIndicator;
-

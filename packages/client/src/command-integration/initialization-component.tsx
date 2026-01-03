@@ -14,7 +14,7 @@ import InputModal from './input-modal';
 function useFeatureCommandLoader() {
 	return useCommandLoader( {
 		name: 'wp-feature-api/feature-command-loader', // Unique name for this loader
-		// eslint-disable-next-line react-compiler/react-compiler
+		// eslint-disable-next-line
 		hook: useFeatureCommands, // The custom hook defined above
 	} );
 }

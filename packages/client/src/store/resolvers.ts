@@ -25,7 +25,7 @@ export function getRegisteredFeatures() {
 					page,
 					per_page: 100,
 				} );
-			
+
 			if ( ! features || features.length === 0 ) {
 				hasMore = false;
 			} else {

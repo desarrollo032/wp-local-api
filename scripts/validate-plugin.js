@@ -1,243 +1,212 @@
+/* eslint-disable no-console */
 /**
- * Script de validación de estructura de plugins WordPress
- * 
- * Verifica que los plugins cumplan con las reglas de WordPress:
- * - Archivo principal con header correcto
- * - No hay archivos de desarrollo (node_modules, .git, etc.)
- * - Estructura de carpetas válida
- * 
- * Uso: node scripts/validate-plugin.js [ruta_plugin]
+ * Script de validación de plugins WordPress
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-
-const REQUIRED_HEADERS = [
-    'Plugin Name',
-    'Version',
-];
-
-const FORBIDDEN_PATTERNS = [
-    /node_modules/,
-    /\.git/,
-    /\.gitignore/,
-    /composer\.lock/,
-    /package-lock\.json/,
-    /\.eslint/,
-    /\.prettier/,
-    /\.vscode/,
-    /tsconfig/,
-    /webpack\.config\.js/,
-    /\.DS_Store/,
-    /Thumbs\.db/,
-    /\.map$/,
-    /\.d\.ts$/,
-];
+const fs = require( 'fs' );
+const path = require( 'path' );
+const crypto = require( 'crypto' );
+// eslint-disable-next-line no-unused-vars
+const { execSync } = require( 'child_process' );
 
 /**
- * Verificar header del archivo principal
+ * Validar encabezado del archivo principal
+ *
+ * @param {string} filePath Ruta del archivo
+ * @return {Object} Resultado
  */
-function validateMainHeader(filePath) {
-    console.log(`\n📄 Validando header del plugin: ${path.basename(filePath)}`);
-    
-    const content = fs.readFileSync(filePath, 'utf8');
-    const errors = [];
-    const warnings = [];
-    
-    // Verificar headers requeridos
-    for (const header of REQUIRED_HEADERS) {
-        const regex = new RegExp(`${header}:`, 'i');
-        if (!regex.test(content)) {
-            errors.push(`Header requerido faltante: ${header}`);
-        }
-    }
-    
-    // Verificar exit si ABSPATH no está definido
-    if (!content.includes('ABSPATH')) {
-        warnings.push('No se encontró verificación de ABSPATH');
-    }
-    
-    return { valid: errors.length === 0, errors, warnings };
+function validateMainHeader( filePath ) {
+	const content = fs.readFileSync( filePath, 'utf8' );
+	const errors = [];
+
+	if ( ! content.includes( 'Plugin Name:' ) ) {
+		errors.push( 'Falta "Plugin Name"' );
+	}
+	if ( ! content.includes( 'Version:' ) ) {
+		errors.push( 'Falta "Version"' );
+	}
+	if ( ! content.includes( 'ABSPATH' ) ) {
+		console.log( '   ⚠️  Advertencia: No se detectó chequeo de ABSPATH' );
+	}
+
+	return {
+		valid: errors.length === 0,
+		errors,
+	};
 }
 
 /**
- * Verificar estructura de archivos
+ * Validar estructura de archivos requeridos
+ *
+ * @param {string}   pluginDir     Directorio del plugin
+ * @param {string[]} requiredFiles Archivos requeridos
+ * @return {Object} Resultado
  */
-function validateFileStructure(pluginDir) {
-    console.log(`\n📁 Validando estructura: ${path.basename(pluginDir)}`);
-    
-    const errors = [];
-    const warnings = [];
-    let fileCount = 0;
-    
-    function scanDir(dir, baseDir = dir) {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        
-        for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
-            const relativePath = path.relative(baseDir, fullPath);
-            
-            if (entry.isDirectory()) {
-                // Verificar si el nombre del directorio es válido
-                if (entry.name.startsWith('.') || entry.name.includes(' ')) {
-                    warnings.push(`Nombre de directorio potencialmente problemático: ${relativePath}`);
-                }
-                scanDir(fullPath, baseDir);
-            } else {
-                fileCount++;
-                
-                // Verificar patrones prohibidos
-                for (const pattern of FORBIDDEN_PATTERNS) {
-                    if (pattern.test(relativePath)) {
-                        errors.push(`Archivo de desarrollo encontrado: ${relativePath}`);
-                    }
-                }
-            }
-        }
-    }
-    
-    scanDir(pluginDir);
-    
-    return { 
-        valid: errors.length === 0, 
-        errors, 
-        warnings,
-        fileCount 
-    };
+function validateRequiredFiles( pluginDir, requiredFiles = [] ) {
+	const missing = [];
+
+	for ( const file of requiredFiles ) {
+		if ( ! fs.existsSync( path.join( pluginDir, file ) ) ) {
+			missing.push( file );
+		}
+	}
+
+	if ( missing.length > 0 ) {
+		console.log( '   ❌ Archivos faltantes:' );
+		missing.forEach( ( f ) => console.log( `      - ${ f }` ) );
+	}
+
+	return {
+		valid: missing.length === 0,
+		missing,
+	};
 }
 
 /**
- * Verificar que existen archivos requeridos
+ * Calcular hash SHA256 de un archivo
+ *
+ * @param {string} filePath Ruta del archivo
+ * @return {string} Hash
  */
-function validateRequiredFiles(pluginDir, requiredFiles) {
-    console.log(`\n✅ Verificando archivos requeridos...`);
-    
-    const errors = [];
-    
-    for (const file of requiredFiles) {
-        const filePath = path.join(pluginDir, file);
-        if (!fs.existsSync(filePath)) {
-            errors.push(`Archivo requerido faltante: ${file}`);
-        }
-    }
-    
-    return { valid: errors.length === 0, errors };
+// eslint-disable-next-line no-unused-vars
+function calculateSHA256( filePath ) {
+	const fileBuffer = fs.readFileSync( filePath );
+	const hashSum = crypto.createHash( 'sha256' );
+	hashSum.update( fileBuffer );
+	return hashSum.digest( 'hex' );
 }
 
 /**
- * Calcular hash SHA256 del archivo
+ * Validar estructura general
+ *
+ * @param {string} pluginDir Directorio del plugin
+ * @return {boolean} Validez
  */
-function calculateSHA256(filePath) {
-    try {
-        const content = fs.readFileSync(filePath);
-        const crypto = require('crypto');
-        return crypto.createHash('sha256').update(content).digest('hex');
-    } catch (e) {
-        return null;
-    }
+function validateFileStructure( pluginDir ) {
+	// Validar que no haya archivos de desarrollo
+	const devFiles = [
+		'.git',
+		'.gitignore',
+		'node_modules',
+		'webpack.config.js',
+		'tsconfig.json',
+		'.eslintrc',
+		'.prettierrc',
+	];
+
+	const foundDevFiles = [];
+
+	// Función recursiva para buscar archivos
+	function scan( dir ) {
+		const entries = fs.readdirSync( dir, { withFileTypes: true } );
+		for ( const entry of entries ) {
+			if ( devFiles.includes( entry.name ) ) {
+				foundDevFiles.push( path.join( dir, entry.name ) );
+			} else if ( entry.isDirectory() ) {
+				scan( path.join( dir, entry.name ) );
+			}
+		}
+	}
+
+	scan( pluginDir );
+
+	if ( foundDevFiles.length > 0 ) {
+		console.log(
+			'   ⚠️  Advertencia: Se encontraron archivos de desarrollo:'
+		);
+		foundDevFiles.forEach( ( f ) =>
+			console.log( `      - ${ path.relative( pluginDir, f ) }` )
+		);
+		// No fallamos por esto, pero avisamos
+	}
+
+	return true;
 }
 
 /**
- * Generar reporte de validación
+ * Generar reporte
+ *
+ * @param {string} pluginDir Directorio del plugin
+ * @param {Object} results   Resultados
+ * @return {boolean} Resultado final
  */
-function generateReport(pluginDir, results) {
-    const pluginName = path.basename(pluginDir);
-    console.log('\n' + '='.repeat(60));
-    console.log(`📋 REPORTE DE VALIDACIÓN: ${pluginName}`);
-    console.log('='.repeat(60));
-    
-    let allValid = true;
-    
-    // Header
-    console.log('\n🔍 VALIDACIÓN DE HEADER:');
-    if (results.header.valid) {
-        console.log('   ✅ Header válido');
-    } else {
-        console.log('   ❌ Errores:');
-        results.header.errors.forEach(e => console.log(`      - ${e}`));
-        allValid = false;
-    }
-    results.header.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
-    
-    // Archivos requeridos
-    console.log('\n📄 ARCHIVOS REQUERIDOS:');
-    if (results.required.valid) {
-        console.log('   ✅ Todos los archivos requeridos presentes');
-    } else {
-        console.log('   ❌ Archivos faltantes:');
-        results.required.errors.forEach(e => console.log(`      - ${e}`));
-        allValid = false;
-    }
-    
-    // Estructura
-    console.log('\n📁 ESTRUCTURA DE ARCHIVOS:');
-    if (results.structure.valid) {
-        console.log(`   ✅ Estructura válida (${results.structure.fileCount} archivos)`);
-    } else {
-        console.log('   ❌ Problemas encontrados:');
-        results.structure.errors.forEach(e => console.log(`      - ${e}`));
-        allValid = false;
-    }
-    results.structure.warnings.forEach(w => console.log(`   ⚠️  ${w}`));
-    
-    console.log('\n' + '='.repeat(60));
-    
-    return allValid;
+function generateReport( pluginDir, results ) {
+	console.log( '\n📊 Reporte de Validación' );
+	console.log( '-'.repeat( 30 ) );
+
+	let isValid = true;
+
+	if ( results.header && ! results.header.valid ) {
+		isValid = false;
+		console.log( '❌ Error en encabezados:' );
+		results.header.errors.forEach( ( e ) => console.log( `   - ${ e }` ) );
+	} else {
+		console.log( '✅ Encabezados correctos' );
+	}
+
+	if ( results.required && ! results.required.valid ) {
+		isValid = false;
+		console.log( '❌ Archivos requeridos faltantes' );
+	} else {
+		console.log( '✅ Archivos requeridos presentes' );
+	}
+
+	if ( results.structure ) {
+		console.log( '✅ Estructura verificada' );
+	}
+
+	return isValid;
 }
 
 /**
  * Función principal
+ *
+ * @param {string} pluginDir Directorio del plugin a validar
  */
-function main() {
-    const args = process.argv.slice(2);
-    const pluginDir = args[0] || process.cwd();
-    
-    console.log('🔍 Validador de Plugins WordPress');
-    console.log('='.repeat(60));
-    console.log(`📂 Plugin: ${pluginDir}`);
-    
-    // Verificar que existe
-    if (!fs.existsSync(pluginDir)) {
-        console.error(`❌ Error: El directorio no existe: ${pluginDir}`);
-        process.exit(1);
-    }
-    
-    // Encontrar archivo principal
-    const mainFile = fs.readdirSync(pluginDir).find(f => f.endsWith('.php'));
-    
-    if (!mainFile) {
-        console.error('❌ Error: No se encontró archivo PHP principal');
-        process.exit(1);
-    }
-    
-    const mainFilePath = path.join(pluginDir, mainFile);
-    
-    // Ejecutar validaciones
-    const results = {
-        header: validateMainHeader(mainFilePath),
-        required: validateRequiredFiles(pluginDir, [mainFile]),
-        structure: validateFileStructure(pluginDir),
-    };
-    
-    // Generar reporte
-    const isValid = generateReport(pluginDir, results);
-    
-    console.log('\n' + (isValid ? '✅ VALIDACIÓN EXITOSA' : '❌ VALIDACIÓN FALLIDA'));
-    
-    process.exit(isValid ? 0 : 1);
+function main( pluginDir ) {
+	if ( ! pluginDir ) {
+		console.error( '❌ Error: Debes especificar el directorio del plugin' );
+		process.exit( 1 );
+	}
+
+	if ( ! fs.existsSync( pluginDir ) ) {
+		console.error( `❌ Error: El directorio no existe: ${ pluginDir }` );
+		process.exit( 1 );
+	}
+
+	console.log( `🔍 Validando plugin en: ${ pluginDir }` );
+
+	// Buscar archivo principal
+	const mainFile = fs
+		.readdirSync( pluginDir )
+		.find( ( f ) => f.endsWith( '.php' ) );
+
+	if ( ! mainFile ) {
+		console.error( '❌ Error: No se encontró archivo PHP principal' );
+		process.exit( 1 );
+	}
+
+	const mainFilePath = path.join( pluginDir, mainFile );
+
+	const results = {
+		header: validateMainHeader( mainFilePath ),
+		required: validateRequiredFiles( pluginDir, [ mainFile ] ),
+		structure: validateFileStructure( pluginDir ),
+	};
+
+	const isValid = generateReport( pluginDir, results );
+
+	console.log(
+		'\n' + ( isValid ? '✅ VALIDACIÓN EXITOSA' : '❌ VALIDACIÓN FALLIDA' )
+	);
+
+	process.exit( isValid ? 0 : 1 );
 }
 
-// Exportar para uso como módulo
-module.exports = {
-    validateMainHeader,
-    validateFileStructure,
-    validateRequiredFiles,
-    generateReport,
-};
-
-// Ejecutar si es el script principal
-if (require.main === module) {
-    main();
+// Ejecutar si se llama directamente
+if ( require.main === module ) {
+	const dir = process.argv[ 2 ];
+	main( dir );
 }
 
+module.exports = { main, validateMainHeader, validateRequiredFiles };

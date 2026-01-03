@@ -1,4 +1,4 @@
-import type { Feature } from "./types";
+import type { Feature } from './types';
 /**
  * Registers a feature with the feature registry.
  *
