@@ -4,6 +4,9 @@
   "description": "TypeScript AI agent demo for the WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "scripts": {
+    "build": "webpack --mode production"
+  },
   "peerDependencies": {
     "@automattic/wp-feature-api": "^0.1.11",
     "@wordpress/api-fetch": "^7.37.0",
