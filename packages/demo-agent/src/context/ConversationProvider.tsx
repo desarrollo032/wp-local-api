@@ -141,6 +141,12 @@ export const ConversationProvider = ({
 			try {
 				const apiFetch = (window as any).wp?.apiFetch;
 				if (!apiFetch) {
+					console.error('wp.apiFetch is not available. Ensure WordPress dependencies are loaded.');
+					setMcpStatus({
+						is_active: false,
+						tools_count: 0,
+						status: 'error',
+					});
 					return;
 				}
 				const resp = await apiFetch({
@@ -150,6 +156,11 @@ export const ConversationProvider = ({
 			} catch (e) {
 				// eslint-disable-next-line no-console
 				console.log('MCP not available:', e);
+				setMcpStatus({
+					is_active: false,
+					tools_count: 0,
+					status: 'error',
+				});
 			}
 		})();
 
@@ -158,6 +169,7 @@ export const ConversationProvider = ({
 			try {
 				const apiFetch = (window as any).wp?.apiFetch;
 				if (!apiFetch) {
+					console.error('wp.apiFetch is not available. Cannot fetch AI models.');
 					return;
 				}
 				const resp = await apiFetch({
@@ -210,8 +222,7 @@ export const ConversationProvider = ({
 				return;
 			}
 
-			// Use selectedModel if available, otherwise fallback to a sensible default.
-			// For OpenRouter, prefer a free model as default
+			// Use selectedModel if available, otherwise fallback to first available model
 			let defaultModel = selectedModel;
 			if (!defaultModel) {
 				// Try to get a free OpenRouter model from the models list if available
@@ -220,9 +231,12 @@ export const ConversationProvider = ({
 				);
 				if (freeOpenRouterModels.length > 0) {
 					defaultModel = freeOpenRouterModels[0].id;
+				} else if (models.length > 0) {
+					// Fallback to first available model from the list
+					defaultModel = models[0].id;
 				} else {
-					// Fallback to a known free model or gpt-4o
-					defaultModel = 'microsoft/phi-3-mini-128k-instruct:free';
+					// No models available - show error
+					throw new Error('No AI models available. Please configure API keys in plugin settings.');
 				}
 			}
 
@@ -260,8 +274,8 @@ export const ConversationProvider = ({
 					{
 						role: 'assistant',
 						content: `Error: ${error instanceof Error
-								? error.message
-								: 'Failed to get response'
+							? error.message
+							: 'Failed to get response'
 							}`,
 					},
 				]);

@@ -177,13 +177,16 @@ class WP_AI_API_Proxy {
 		foreach ( $value as $key => $arg_value ) {
 			$clean_key = sanitize_key( $key );
 			if ( is_string( $arg_value ) ) {
-				$sanitized[ $clean_key ] = sanitize_text_field( $arg_value );
+				// Use sanitize_textarea_field to preserve newlines and multiline content
+				$sanitized[ $clean_key ] = sanitize_textarea_field( $arg_value );
 			} elseif ( is_array( $arg_value ) ) {
 				$sanitized[ $clean_key ] = $this->sanitize_mcp_arguments( $arg_value );
 			} elseif ( is_numeric( $arg_value ) ) {
 				$sanitized[ $clean_key ] = $arg_value;
 			} elseif ( is_bool( $arg_value ) ) {
 				$sanitized[ $clean_key ] = $arg_value;
+			} elseif ( is_null( $arg_value ) ) {
+				$sanitized[ $clean_key ] = null;
 			}
 			// Skip other types for security
 		}
@@ -500,6 +503,13 @@ class WP_AI_API_Proxy {
 		$response_headers = wp_remote_retrieve_headers( $response );
 		$response_body    = wp_remote_retrieve_body( $response );
 
+		// Log response details for debugging errors
+		if ( WP_DEBUG && $response_code >= 400 ) {
+			error_log( 'WP Feature API Proxy: Error response from AI service' );
+			error_log( 'WP Feature API Proxy: Response Code: ' . $response_code );
+			error_log( 'WP Feature API Proxy: Target URL: ' . $target_url );
+		}
+
 		// Handle empty response body
 		if ( empty( $response_body ) ) {
 			return new WP_Error(
@@ -591,12 +601,12 @@ class WP_AI_API_Proxy {
 			return array();
 		}
 
-		$cache_key = sprintf( '%s-%s', self::AI_API_PROXY_MODELS_CACHE_KEY_PREFIX, sanitize_key( $provider ) );
-		$found     = false;
+		// Use transients for persistent cache across requests
+		$cache_key = sprintf( '%s_%s_%s', self::AI_API_PROXY_CACHE_NAMESPACE, self::AI_API_PROXY_MODELS_CACHE_KEY_PREFIX, sanitize_key( $provider ) );
 
-		$cached_models = wp_cache_get( $cache_key, self::AI_API_PROXY_CACHE_NAMESPACE, false, $found );
-		if ( $found ) {
-			return is_array( $cached_models ) ? $cached_models : array();
+		$cached_models = get_transient( $cache_key );
+		if ( false !== $cached_models && is_array( $cached_models ) ) {
+			return $cached_models;
 		}
 
 		$headers  = array();
@@ -660,7 +670,8 @@ class WP_AI_API_Proxy {
 		}
 
 		if ( is_array( $models_data ) ) {
-			wp_cache_set( $cache_key, $models_data, self::AI_API_PROXY_CACHE_NAMESPACE, 30 * MINUTE_IN_SECONDS );
+			// Use transients for persistent cache (30 minutes)
+			set_transient( $cache_key, $models_data, 30 * MINUTE_IN_SECONDS );
 			return $models_data;
 		} else {
 			return array();
