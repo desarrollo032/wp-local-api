@@ -433,6 +433,7 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		mask-composite: exclude;
 		opacity: 0;
 		transition: opacity 0.3s ease;
+		pointer-events: none;
 	}
 
 	&:focus-within {
@@ -457,6 +458,8 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		color: $text-primary;
 		margin: 0;
 		font-family: inherit;
+		position: relative;
+		z-index: 2;
 
 		&:focus {
 			outline: none;
@@ -470,6 +473,7 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 
 	&-submit {
 		position: relative;
+		z-index: 2;
 		background: $primary-gradient;
 		color: $text-primary;
 		border: none;
