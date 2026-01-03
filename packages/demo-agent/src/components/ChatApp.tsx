@@ -5,11 +5,35 @@ import { useState, useRef, useEffect } from '@wordpress/element';
 import {
 	Button,
 	TextareaControl,
-	Icon,
 	SelectControl,
 } from '@wordpress/components';
-import { arrowRight, chevronDown, chevronUp } from '@wordpress/icons';
-import { trash } from '@wordpress/icons';
+
+/**
+ * Inline SVG icons to avoid dependency on wp.icons which may not be loaded
+ */
+const TrashIcon = () => (
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+		<path d="M19 6.5H5V18a2 2 0 002 2h10a2 2 0 002-2V6.5zm-8 10h-1v-7h1v7zm3 0h-1v-7h1v7zm3-12h-4V3H11v1.5H7v1.5h10V4.5z" />
+	</svg>
+);
+
+const ArrowRightIcon = () => (
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+		<path d="M14.3 6.7l-1.1 1.1 4.2 4.2H3v1.5h14.4l-4.2 4.2 1.1 1.1 5.7-5.7-5.7-5.4z" />
+	</svg>
+);
+
+const ChevronDownIcon = () => (
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+		<path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z" />
+	</svg>
+);
+
+const ChevronUpIcon = () => (
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+		<path d="M6.5 12.4L12 8l5.5 4.4-.9 1.2L12 10l-4.5 3.6-1-1.2z" />
+	</svg>
+);
 
 /**
  * Internal dependencies
@@ -21,6 +45,7 @@ import {
 	PendingAssistantMessage,
 } from './ChatMessage';
 import { McpStatusIndicator } from './McpStatusIndicator';
+
 
 export const ChatApp = () => {
 	const {
@@ -89,7 +114,7 @@ export const ChatApp = () => {
 					<Button
 						onClick={clearConversation}
 						label="Clear Conversation"
-						icon={trash}
+						icon={<TrashIcon />}
 						isSmall
 						variant="tertiary"
 					/>
@@ -97,9 +122,7 @@ export const ChatApp = () => {
 						onClick={toggleMinimize}
 						label={isMinimized ? 'Maximize' : 'Minimize'}
 						icon={
-							<Icon
-								icon={isMinimized ? chevronUp : chevronDown}
-							/>
+							isMinimized ? <ChevronUpIcon /> : <ChevronDownIcon />
 						}
 						isSmall
 						variant="tertiary"
@@ -138,7 +161,7 @@ export const ChatApp = () => {
 						disabled={isLoading || !input.trim()}
 						className="chat-input-submit"
 						label="Send Message"
-						icon={<Icon icon={arrowRight} />}
+						icon={<ArrowRightIcon />}
 						variant="primary"
 					/>
 				</div>

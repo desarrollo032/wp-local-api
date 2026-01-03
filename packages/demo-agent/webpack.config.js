@@ -2,23 +2,23 @@
  * WordPress dependencies
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
-const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+const defaultConfig = require('@wordpress/scripts/config/webpack.config');
 // eslint-disable-next-line import/no-extraneous-dependencies
-const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extraction-webpack-plugin' );
+const DependencyExtractionWebpackPlugin = require('@wordpress/dependency-extraction-webpack-plugin');
 /**
  * External dependencies
  */
-const path = require( 'path' );
+const path = require('path');
 
 module.exports = {
 	...defaultConfig,
 	entry: {
-		index: path.resolve( __dirname, 'src/index.tsx' ),
+		index: path.resolve(__dirname, 'src/index.tsx'),
 	},
 	output: {
 		...defaultConfig.output,
 		filename: '[name].js',
-		path: path.resolve( __dirname, 'build' ),
+		path: path.resolve(__dirname, 'build'),
 	},
 	resolve: {
 		...defaultConfig.resolve,
@@ -36,14 +36,13 @@ module.exports = {
 		'@wordpress/data': 'wp.data',
 		'@wordpress/element': 'wp.element',
 		'@wordpress/i18n': 'wp.i18n',
-		'@wordpress/icons': 'wp.icons',
 		'@automattic/wp-feature-api': 'wp.features',
 		'react': 'React',
 		'react-dom': 'ReactDOM',
 	},
 	plugins: [
 		...defaultConfig.plugins.filter(
-			( plugin ) =>
+			(plugin) =>
 				plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
 		),
 		new DependencyExtractionWebpackPlugin(),
