@@ -265,8 +265,8 @@ if (-not (Test-PluginHeader $AgentPhp "wp-feature-api-agent")) {
     exit 1
 }
 
-# Copiar archivos
-Copy-Item $AgentPhp (Join-Path $TempDir "wp-feature-api-demo-agent.php") -Force
+# Copiar archivos - mantener el nombre original del archivo PHP
+Copy-Item $AgentPhp (Join-Path $TempDir "wp-feature-api-agent.php") -Force
 
 $AgentPackageJson = Join-Path $RootDir "packages\demo-agent\package.json"
 if (Test-Path $AgentPackageJson) {
@@ -283,8 +283,8 @@ Copy-WithExclusions (Join-Path $RootDir "packages\demo-agent\build") (Join-Path 
 Copy-WithExclusions (Join-Path $RootDir "packages\client-features\build") (Join-Path $TempDir "build-features")
 
 # Generar ZIP
-if (New-PluginZip $TempDir "wp-feature-api-demo-agent.zip") {
-    Write-Success "wp-feature-api-demo-agent completado"
+if (New-PluginZip $TempDir "wp-feature-api-agent.zip") {
+    Write-Success "wp-feature-api-agent completado"
 } else {
     exit 1
 }
