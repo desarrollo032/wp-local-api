@@ -451,7 +451,7 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		padding: 8px 12px;
 		font-size: 14px;
 		resize: none;
-		background: transparent;
+		background: transparent !important;
 		min-height: 24px;
 		max-height: 150px;
 		line-height: 1.6;
@@ -460,6 +460,7 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		font-family: inherit;
 		position: relative;
 		z-index: 2;
+		width: 100%;
 
 		&:focus {
 			outline: none;
