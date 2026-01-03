@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'WP_AI_API_PROXY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_AI_API_PROXY_URL', plugin_dir_url( __FILE__ ) );
-define( 'WP_AI_API_PROXY_VERSION', '0.1.11' );
+define( 'WP_AI_API_PROXY_VERSION', '0.1.15' );
 
 // Include the main proxy class.
 require_once WP_AI_API_PROXY_PATH . 'includes/class-wp-ai-api-proxy.php';

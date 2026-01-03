@@ -25,6 +25,13 @@ class WP_AI_API_Options {
 	 * @var string
 	 */
 	const OPENROUTER_OPTION_NAME = 'wp_ai_api_proxy_openrouter_key';
+	
+	/**
+	 * Option name for Gemini API key.
+	 *
+	 * @var string
+	 */
+	const GEMINI_OPTION_NAME = 'wp_ai_api_proxy_gemini_key';
 
 	/**
 	 * Option name for OpenRouter API host (optional override).
@@ -104,6 +111,15 @@ class WP_AI_API_Options {
 
 		register_setting(
 			self::OPTION_PAGE,
+			self::GEMINI_OPTION_NAME,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			)
+		);
+
+		register_setting(
+			self::OPTION_PAGE,
 			self::OPENROUTER_HOST_OPTION,
 			array(
 				'type'              => 'string',
@@ -157,6 +173,14 @@ class WP_AI_API_Options {
 			'openrouter_api_key',
 			__( 'OpenRouter API Key', 'wp-feature-api-agent' ),
 			array( $this, 'render_openrouter_api_key_field' ),
+			self::OPTION_PAGE,
+			'wp_ai_api_proxy_api_section'
+		);
+
+		add_settings_field(
+			'gemini_api_key',
+			__( 'Gemini API Key', 'wp-feature-api-agent' ),
+			array( $this, 'render_gemini_api_key_field' ),
 			self::OPTION_PAGE,
 			'wp_ai_api_proxy_api_section'
 		);
@@ -236,6 +260,7 @@ class WP_AI_API_Options {
 		<select name="<?php echo esc_attr( self::PROVIDER_OPTION_NAME ); ?>">
 			<option value="openai" <?php selected( $value, 'openai' ); ?>><?php esc_html_e( 'OpenAI', 'wp-feature-api-agent' ); ?></option>
 			<option value="openrouter" <?php selected( $value, 'openrouter' ); ?>><?php esc_html_e( 'OpenRouter', 'wp-feature-api-agent' ); ?></option>
+			<option value="gemini" <?php selected( $value, 'gemini' ); ?>><?php esc_html_e( 'Google Gemini', 'wp-feature-api-agent' ); ?></option>
 		</select>
 		<p class="description">
 			<?php esc_html_e( 'Select the AI provider to use for the demo proxy.', 'wp-feature-api-agent' ); ?>
@@ -256,6 +281,29 @@ class WP_AI_API_Options {
 		/>
 		<p class="description">
 			<?php esc_html_e( 'Enter your OpenRouter API key.', 'wp-feature-api-agent' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the Gemini API key field.
+	 */
+	public function render_gemini_api_key_field() {
+		$value = get_option( self::GEMINI_OPTION_NAME );
+		?>
+		<input type="password"
+			   name="<?php echo esc_attr( self::GEMINI_OPTION_NAME ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   class="regular-text"
+		/>
+		<p class="description">
+			<?php 
+			printf(
+				/* translators: %s: URL to Google AI Studio */
+				esc_html__( 'Enter your Google Gemini API key. Get one at %s.', 'wp-feature-api-agent' ),
+				'<a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>'
+			);
+			?>
 		</p>
 		<?php
 	}
@@ -589,11 +637,14 @@ class WP_AI_API_Options {
 		$provider = get_option( self::PROVIDER_OPTION_NAME, 'openai' );
 		$openai_key = get_option( self::OPENAI_OPTION_NAME );
 		$openrouter_key = get_option( self::OPENROUTER_OPTION_NAME );
+		$gemini_key = get_option( self::GEMINI_OPTION_NAME );
 
 		$missing_for_selected = false;
 		if ( $provider === 'openai' && empty( $openai_key ) ) {
 			$missing_for_selected = true;
 		} elseif ( $provider === 'openrouter' && empty( $openrouter_key ) ) {
+			$missing_for_selected = true;
+		} elseif ( $provider === 'gemini' && empty( $gemini_key ) ) {
 			$missing_for_selected = true;
 		}
 
@@ -639,6 +690,15 @@ class WP_AI_API_Options {
 	 */
 	public static function get_openrouter_api_key(): string {
 		return get_option( self::OPENROUTER_OPTION_NAME, '' );
+	}
+
+	/**
+	 * Get the Gemini API key.
+	 *
+	 * @return string The Gemini API key.
+	 */
+	public static function get_gemini_api_key(): string {
+		return get_option( self::GEMINI_OPTION_NAME, '' );
 	}
 
 	/**

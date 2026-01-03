@@ -74,7 +74,7 @@ class WP_AI_API_Proxy {
 	public function register_rest_routes() {
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'healthcheck',
+			'/healthcheck',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'ai_api_healthcheck' ),
@@ -84,7 +84,7 @@ class WP_AI_API_Proxy {
 
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'models',
+			'/models',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'list_available_models' ),
@@ -95,7 +95,7 @@ class WP_AI_API_Proxy {
 		// MCP status endpoint - check if wordpress-mcp is active
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'mcp/status',
+			'/mcp/status',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'mcp_status_check' ),
@@ -106,7 +106,7 @@ class WP_AI_API_Proxy {
 		// MCP tools endpoint - get available tools from wordpress-mcp
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'mcp/tools',
+			'/mcp/tools',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'mcp_tools_list' ),
@@ -117,7 +117,7 @@ class WP_AI_API_Proxy {
 		// MCP call endpoint - execute MCP tools
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'mcp/call',
+			'/mcp/call',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'mcp_call_tool' ),
@@ -146,7 +146,7 @@ class WP_AI_API_Proxy {
 		// This must be registered before the catch-all route
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . 'chat/completions',
+			'/chat/completions',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'ai_api_chat_completions' ),
@@ -157,7 +157,7 @@ class WP_AI_API_Proxy {
 		// Catch-all route for other AI API endpoints (must be registered last)
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '(?P<api_path>.*)',
+			'/(?P<api_path>.*)',
 			array(
 				'methods'             => WP_REST_Server::ALLMETHODS,
 				'callback'            => array( $this, 'ai_api_proxy' ),
