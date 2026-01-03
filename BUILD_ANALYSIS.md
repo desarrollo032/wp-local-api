@@ -1,212 +1,104 @@
-# Análisis de Errores de Build - wp-feature-api
+# ANÁLISIS DE PROBLEMAS DETECTADOS
 
-## Resumen Ejecutivo
+## 1. Scripts Duplicados e Inconsistentes
 
-Se han identificado **5 problemas críticos** en la configuración de Webpack y TypeScript que pueden causar errores de build.
+### Scripts en `scripts/`:
+| Script | Propósito | Problema |
+|--------|-----------|----------|
+| `build-packages.sh` | Build + Package | Mezcla responsabilidades |
+| `create-packages-zip.js` | Package | Duplica funcionalidad de build |
+| `create-plugins-zip.js` | Build + Package | Duplica funcionalidad |
+| `make-local-release.sh` | Release local | Usa estructura distinta (`demo/wp-feature-api-agent/`) |
+| `create-release.sh` | GitHub Release | Depende de `make-local-release.sh` |
+| `update-release-notes.sh` | Release notes | OK - mantener |
+| `validate-plugin.js` | Validación | No se usa desde otros scripts |
 
----
+### TOTAL: 7 scripts con funcionalidad superpuesta
 
-## 🔴 PROBLEMA 1: Ruta Incorrecta en tsconfig.json Raíz
+## 2. Problema del ZIP del Demo
 
-**Archivo:** `/workspaces/wp-feature-api/tsconfig.json`  
-**Línea:** 7  
-**Gravedad:** CRÍTICA
+### Error: "No se ha podido descomprimir el paquete. No se encontraron plugins."
 
-### Problema
-```json
-{
-  "references": [
-    { "path": "./demo/wp-feature-api-agent" }  // ❌ INCORRECTO
-  ]
-}
+**Causas raíz:**
+1. El script `create-plugins-zip.js` NO genera `wp-feature-api-demo.zip`
+2. Solo genera 2 ZIPs: `wp-feature-api.zip` y `wp-feature-api-agent.zip`
+3. `make-local-release.sh` espera `demo/wp-feature-api-agent/` que no existe
+
+### Mapeo correcto de paquetes:
+```
+packages/client/           → wp-feature-api.zip (plugin principal)
+packages/client-features/  → wp-feature-api-agent.zip  
+packages/demo-agent/       → wp-feature-api-demo.zip (NUEVO)
 ```
 
-### Causa Raíz
-La referencia apunta a `demo/wp-feature-api-agent` pero el paquete está en `packages/demo-agent`.
+## 3. Estructura PHP Inconsistente
 
-### Corrección
-```json
-{
-  "references": [
-    { "path": "./packages/demo-agent" }  // ✅ CORRECTO
-  ]
-}
+### Archivos PHP principales:
+- `wp-feature-api.php` → Header: "Plugin Name: WordPress Feature API"
+- `packages/demo-agent/wp-feature-api-agent.php` → Header: "Plugin Name: WP Feature API - AI Agent Proxy"
+
+**Problema:** El demo-agent usa `wp-feature-api-agent.php` pero debería renombrarse a `wp-feature-api-demo.php` para coincidir con el nombre del ZIP.
+
+## 4. Fallos de Validación
+
+### `create-plugins-zip.js`:
+- ✅ Valida headers PHP
+- ❌ No valida que exista build antes de empaquetar
+- ❌ No verifica estructura correcta de plugin WordPress
+- ❌ No falla explícitamente si falta el archivo PHP principal
+
+## 5. Falta Generar SHA256
+
+### Archivos que generan checksums:
+- `build-packages.sh` → ✅ Genera SHA256
+- `create-packages-zip.js` → ✅ Genera SHA256
+- `create-plugins-zip.js` → ❌ NO Genera SHA256
+- `make-local-release.sh` → ✅ Genera SHA256
+
+## SOLUCIONES A IMPLEMENTAR
+
+### 1. Unificar scripts:
+- `build.sh` - Solo build (Webpack/TypeScript)
+- `package.sh` - Solo package (ZIP + SHA256)
+- Mantener `update-release-notes.sh` (no toca)
+- Eliminar: `build-packages.sh`, `create-packages-zip.js`, `create-plugins-zip.js`, `make-local-release.sh`, `create-release.sh`, `validate-plugin.js`
+
+### 2. Generar 3 ZIPs:
+1. `wp-feature-api.zip` - Plugin principal
+2. `wp-feature-api-agent.zip` - Client features
+3. `wp-feature-api-demo.zip` - Demo agent (NUEVO)
+
+### 3. Validaciones obligatorias:
+- Verificar que existe build antes de empaquetar
+- Verificar que el archivo PHP principal está en la raíz
+- Fallar explícitamente si falta algo
+
+### 4. Estructura correcta de cada ZIP:
+```
+wp-feature-api.zip/
+├── wp-feature-api.php           (header correcto)
+├── includes/
+├── build/
+└── package.json
+
+wp-feature-api-agent.zip/
+├── wp-feature-api-agent.php     (header correcto)
+├── includes/
+├── build/
+└── package.json
+
+wp-feature-api-demo.zip/
+├── wp-feature-api-demo.php      (renombrado desde agent)
+├── includes/
+├── build/
+└── package.json
 ```
 
----
-
-## 🔴 PROBLEMA 2: Falta `entry` en demo-agent webpack.config.js
-
-**Archivo:** `/workspaces/wp-feature-api/packages/demo-agent/webpack.config.js`  
-**Gravedad:** CRÍTICA
-
-### Problema
-Falta la configuración de `entry` para el punto de entrada `src/index.tsx`.
-
-### Corrección
-Añadir al inicio del objeto `module.exports`:
-
-```javascript
-module.exports = {
-	...defaultConfig,
-	entry: {
-		index: './src/index.tsx',  // ✅ AÑADIR
-	},
-	// ... resto de la configuración
-};
-```
-
-### Archivo completo corregido:
-
-```javascript
-/**
- * WordPress dependencies
- */
-const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
-/**
- * External dependencies
- */
-const path = require( 'path' );
-
-module.exports = {
-	...defaultConfig,
-	entry: {
-		index: './src/index.tsx',
-	},
-	output: {
-		...defaultConfig.output,
-		filename: '[name].js',
-		path: __dirname + '/build',
-	},
-	resolve: {
-		...defaultConfig.resolve,
-		alias: {
-			...defaultConfig.resolve?.alias,
-			'@automattic/wp-feature-api': path.resolve(
-				__dirname,
-				'../client/src'
-			),
-		},
-	},
-};
-```
-
----
-
-## 🟡 PROBLEMA 3: Inconsistencia en Alias de Webpack
-
-**Archivos afectados:**
-- `/workspaces/wp-feature-api/webpack.config.js` (línea 32-33)
-- `/workspaces/wp-feature-api/packages/client-features/webpack.config.js` (línea 28-29)
-
-### Problema
-El alias de `@automattic/wp-feature-api` apunta a rutas diferentes:
-
-| Archivo | Alias |
-|---------|-------|
-| webpack.config.js raíz | `packages/client/src` |
-| client-features/webpack.config.js | `../client` |
-| demo-agent/webpack.config.js | `../client/src` |
-
-### Corrección
-Unificar todos los alias para que apunten a `../client/src`:
-
-**En `packages/client-features/webpack.config.js`:**
-```javascript
-'@automattic/wp-feature-api': path.resolve(
-	__dirname,
-	'../client/src'  // Cambiar de '../client' a '../client/src'
-),
-```
-
----
-
-## 🟡 PROBLEMA 4: Falta `output` en demo-agent webpack.config.js
-
-**Archivo:** `/workspaces/wp-feature-agent/packages/demo-agent/webpack.config.js`  
-**Gravedad:** MEDIA
-
-### Problema
-No se define explícitamente la configuración de `output`, lo que puede causar que Webpack use valores por defecto incorrectos.
-
-### Corrección
-Añadir configuración de output:
-
-```javascript
-output: {
-	...defaultConfig.output,
-	filename: '[name].js',
-	path: __dirname + '/build',
-},
-```
-
----
-
-## 🟢 PROBLEMA 5: Mejores Prácticas de Mantenimiento
-
-### 5.1 Usar `import type` en client-features
-
-**Archivo:** `packages/client-features/src/index.ts`
-
-**Problema actual:**
-```typescript
-import { registerFeature } from '@automattic/wp-feature-api';
-```
-
-**Corrección:**
-```typescript
-import type { registerFeature } from '@automattic/wp-feature-api';
-// O si es un valor:
-import { registerFeature } from '@automattic/wp-feature-api';
-```
-
-### 5.2 Añadir configuración de externals en demo-agent
-
-Para consistencia con otros paquetes, añadir:
-
-```javascript
-externals: {
-	...defaultConfig.externals,
-	'@automattic/wp-feature-api': 'wp.features',
-	'react': 'wp.react',
-	'react-dom': 'wp.reactDom',
-},
-```
-
----
-
-## 📋 Checklist de Correcciones
-
-- [ ] Corregir referencia en `tsconfig.json` raíz
-- [ ] Añadir `entry` en `packages/demo-agent/webpack.config.js`
-- [ ] Añadir `output` en `packages/demo-agent/webpack.config.js`
-- [ ] Unificar alias de `@automattic/wp-feature-api`
-- [ ] Verificar que todos los builds funcionan después de los cambios
-
----
-
-## 🧪 Comandos para Verificar
-
-```bash
-# Limpiar builds anteriores
-npm run clean
-
-# Build individual
-npm run build:client
-npm run build:client-features
-npm run build:demo-agent
-
-# Build completo
-npm run build
-```
-
----
-
-## 📚 Notas Adicionales
-
-1. **Orden de compilación:** El cliente debe compilarse primero porque `client-features` y `demo-agent` dependen de él.
-
-2. **TypeScript composite:** El uso de `composite: true` en los tsconfig de los paquetes requiere que las referencias estén correctamente configuradas.
-
-3. **wp-scripts:** Todos los paquetes usan `wp-scripts` que internamente usa Webpack 5 con configuración predefinida.
+## Archivos a eliminar (justificación):
+1. `build-packages.sh` - Reemplazado por `build.sh` + `package.sh`
+2. `create-packages-zip.js` - Reemplazado por `package.sh`
+3. `create-plugins-zip.js` - Reemplazado por `package.sh`
+4. `make-local-release.sh` - Usa estructura `demo/` que no existe
+5. `create-release.sh` - Se simplificará a un script nuevo
+6. `validate-plugin.js` - Integrado en `package.sh`
 
