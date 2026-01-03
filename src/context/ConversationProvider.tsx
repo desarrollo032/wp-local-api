@@ -34,77 +34,77 @@ export interface McpStatus {
 
 export interface ConversationContextType {
 	messages: Message[];
-	setMessages: Dispatch< SetStateAction< Message[] > >;
-	sendMessage: ( query: string ) => Promise< void >;
+	setMessages: Dispatch<SetStateAction<Message[]>>;
+	sendMessage: (query: string) => Promise<void>;
 	isLoading: boolean;
 	clearConversation: () => void;
-	toolNameMap: Record< string, string >;
-	models: Array< { id: string; owned_by?: string; raw?: any } >;
+	toolNameMap: Record<string, string>;
+	models: Array<{ id: string; owned_by?: string; raw?: any }>;
 	selectedModel: string | null;
-	setSelectedModel: ( modelId: string ) => void;
+	setSelectedModel: (modelId: string) => void;
 	mcpStatus: McpStatus;
 }
 
 export const ConversationContext =
-	createContext< ConversationContextType | null >( null );
+	createContext<ConversationContextType | null>(null);
 
 interface ConversationProviderProps {
 	children: ReactNode;
 }
 
 // TODO: Should import from wordpress/api-fetch
-const wpApiClient: ApiClient = async ( endpoint, data ) => {
-	const apiFetch = ( window as any ).wp?.apiFetch;
-	if ( ! apiFetch ) {
+const wpApiClient: ApiClient = async (endpoint, data) => {
+	const apiFetch = (window as any).wp?.apiFetch;
+	if (!apiFetch) {
 		throw new Error(
 			'wp.apiFetch is not available. Ensure script dependencies are loaded.'
 		);
 	}
-	return await apiFetch( { path: endpoint, method: 'POST', data } );
+	return await apiFetch({ path: endpoint, method: 'POST', data });
 };
 
 // Storage key for localStorage, basic memory persistence.
 const STORAGE_KEY = 'wp-feature-api-agent-conversation';
 
-export const ConversationProvider = ( {
+export const ConversationProvider = ({
 	children,
-}: ConversationProviderProps ) => {
-	const [ messages, setMessages ] = useState< Message[] >( () => {
+}: ConversationProviderProps) => {
+	const [messages, setMessages] = useState<Message[]>(() => {
 		try {
-			const stored = localStorage.getItem( STORAGE_KEY );
-			return stored ? JSON.parse( stored ) : [];
-		} catch ( error ) {
+			const stored = localStorage.getItem(STORAGE_KEY);
+			return stored ? JSON.parse(stored) : [];
+		} catch (error) {
 			return [];
 		}
-	} );
-	const [ isLoading, setIsLoading ] = useState< boolean >( false );
-	const [ toolExecutor, setToolExecutor ] = useState< ToolExecutor | null >(
+	});
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [toolExecutor, setToolExecutor] = useState<ToolExecutor | null>(
 		null
 	);
-	const [ toolNameMap, setToolNameMap ] = useState<
-		Record< string, string >
-	>( {} );
-	const [ models, setModels ] = useState<
-		Array< { id: string; owned_by?: string; raw?: any } >
-	>( [] );
-	const [ selectedModel, setSelectedModel ] = useState< string | null >(
+	const [toolNameMap, setToolNameMap] = useState<
+		Record<string, string>
+	>({});
+	const [models, setModels] = useState<
+		Array<{ id: string; owned_by?: string; raw?: any }>
+	>([]);
+	const [selectedModel, setSelectedModel] = useState<string | null>(
 		null
 	);
-	const [ mcpStatus, setMcpStatus ] = useState< McpStatus >( () => ( {
+	const [mcpStatus, setMcpStatus] = useState<McpStatus>(() => ({
 		is_active: false,
 		tools_count: 0,
 		status: 'inactive',
-	} ) );
-	const isInitializing = useRef( false );
+	}));
+	const isInitializing = useRef(false);
 
-	useEffect( () => {
-		if ( messages.length > 0 ) {
-			localStorage.setItem( STORAGE_KEY, JSON.stringify( messages ) );
+	useEffect(() => {
+		if (messages.length > 0) {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
 		}
-	}, [ messages ] );
+	}, [messages]);
 
-	useEffect( () => {
-		if ( isInitializing.current ) {
+	useEffect(() => {
+		if (isInitializing.current) {
 			return;
 		}
 		isInitializing.current = true;
@@ -114,93 +114,96 @@ export const ConversationProvider = ( {
 			const provider = createWpFeatureToolProvider();
 			const mcpProvider = createMcpToolProvider();
 			try {
-				await executor.addProvider( provider );
-				await executor.addProvider( mcpProvider );
+				await executor.addProvider(provider);
+				await executor.addProvider(mcpProvider);
 
 				// Build hash-to-feature-name map, so we can display the feature name in the UI.
-				const tools = await Promise.resolve( provider.getTools() );
-				const nameMap: Record< string, string > = {};
-				for ( const tool of tools ) {
-					nameMap[ tool.name ] = tool.displayName;
+				const tools = await Promise.resolve(provider.getTools());
+				const nameMap: Record<string, string> = {};
+				for (const tool of tools) {
+					nameMap[tool.name] = tool.displayName;
 				}
-				setToolNameMap( nameMap );
+				setToolNameMap(nameMap);
 
-				setToolExecutor( executor );
-			} catch ( error ) {
+				setToolExecutor(executor);
+			} catch (error) {
 				// eslint-disable-next-line no-console
-				console.error( 'Failed to initialize Tool Executor:', error );
+				console.error('Failed to initialize Tool Executor:', error);
+				// Still set the executor so the chat can be used even without tools
+				setToolExecutor(executor);
 			}
 		};
 
 		initializeExecutor();
 
+
 		// Fetch MCP status
-		( async () => {
+		(async () => {
 			try {
-				const apiFetch = ( window as any ).wp?.apiFetch;
-				if ( ! apiFetch ) {
+				const apiFetch = (window as any).wp?.apiFetch;
+				if (!apiFetch) {
 					return;
 				}
-				const resp = await apiFetch( {
+				const resp = await apiFetch({
 					path: '/wp/v2/ai-api-proxy/v1/mcp/status',
-				} );
-				setMcpStatus( resp );
-			} catch ( e ) {
+				});
+				setMcpStatus(resp);
+			} catch (e) {
 				// eslint-disable-next-line no-console
-				console.log( 'MCP not available:', e );
+				console.log('MCP not available:', e);
 			}
-		} )();
+		})();
 
 		// Fetch available models from the proxy
-		( async () => {
+		(async () => {
 			try {
-				const apiFetch = ( window as any ).wp?.apiFetch;
-				if ( ! apiFetch ) {
+				const apiFetch = (window as any).wp?.apiFetch;
+				if (!apiFetch) {
 					return;
 				}
-				const resp = await apiFetch( {
+				const resp = await apiFetch({
 					path: '/wp/v2/ai-api-proxy/v1/models',
-				} );
+				});
 				const data = resp?.data ?? resp;
-				if ( Array.isArray( data ) ) {
-					const parsed = data.map( ( m: any, i: number ) => ( {
-						id: m.id ?? m.model ?? m.name ?? String( i ),
+				if (Array.isArray(data)) {
+					const parsed = data.map((m: any, i: number) => ({
+						id: m.id ?? m.model ?? m.name ?? String(i),
 						owned_by: m.owned_by,
 						raw: m,
-					} ) );
-					setModels( parsed );
-					if ( parsed.length > 0 ) {
-						setSelectedModel( parsed[ 0 ].id );
+					}));
+					setModels(parsed);
+					if (parsed.length > 0) {
+						setSelectedModel(parsed[0].id);
 					}
 				}
-			} catch ( e ) {
+			} catch (e) {
 				// eslint-disable-next-line no-console
-				console.error( 'Failed to fetch model list:', e );
+				console.error('Failed to fetch model list:', e);
 			}
-		} )();
-	}, [] );
+		})();
+	}, []);
 
-	const agent: Agent | null = useMemo( () => {
-		if ( toolExecutor ) {
-			return createAgent( {
+	const agent: Agent | null = useMemo(() => {
+		if (toolExecutor) {
+			return createAgent({
 				apiClient: wpApiClient,
 				toolExecutor,
 				mcpStatus,
-			} );
+			});
 		}
 		return null;
-	}, [ toolExecutor, mcpStatus ] );
+	}, [toolExecutor, mcpStatus]);
 
 	const sendMessage = useCallback(
-		async ( query: string ) => {
-			if ( isLoading || ! agent ) {
+		async (query: string) => {
+			if (isLoading || !agent) {
 				return;
 			}
 
 			// Use selectedModel if available, otherwise fallback to a sensible default.
 			const defaultModel = selectedModel ?? 'gpt-4o';
 
-			setIsLoading( true );
+			setIsLoading(true);
 
 			const historyBeforeQuery = messages;
 
@@ -211,49 +214,48 @@ export const ConversationProvider = ( {
 					defaultModel
 				);
 
-				for await ( const messageChunk of messageStream ) {
-					setMessages( ( prev ) => {
+				for await (const messageChunk of messageStream) {
+					setMessages((prev) => {
 						if (
 							messageChunk.role === 'user' &&
 							prev.some(
-								( m ) =>
+								(m) =>
 									m.role === 'user' &&
 									m.content === messageChunk.content
 							)
 						) {
 							return prev;
 						}
-						return [ ...prev, messageChunk ];
-					} );
+						return [...prev, messageChunk];
+					});
 				}
-			} catch ( error ) {
+			} catch (error) {
 				// eslint-disable-next-line no-console
-				console.error( 'Error sending message:', error );
-				setMessages( ( prev ) => [
+				console.error('Error sending message:', error);
+				setMessages((prev) => [
 					...prev,
 					{
 						role: 'assistant',
-						content: `Error: ${
-							error instanceof Error
-								? error.message
-								: 'Failed to get response'
-						}`,
+						content: `Error: ${error instanceof Error
+							? error.message
+							: 'Failed to get response'
+							}`,
 					},
-				] );
+				]);
 			} finally {
-				setIsLoading( false );
+				setIsLoading(false);
 			}
 		},
-		[ isLoading, agent, messages, selectedModel ]
+		[isLoading, agent, messages, selectedModel]
 	);
 
-	const clearConversation = useCallback( () => {
-		setMessages( [] );
-		localStorage.removeItem( STORAGE_KEY );
-	}, [] );
+	const clearConversation = useCallback(() => {
+		setMessages([]);
+		localStorage.removeItem(STORAGE_KEY);
+	}, []);
 
 	const contextValue = useMemo(
-		() => ( {
+		() => ({
 			messages,
 			setMessages,
 			sendMessage,
@@ -264,7 +266,7 @@ export const ConversationProvider = ( {
 			selectedModel,
 			setSelectedModel,
 			mcpStatus,
-		} ),
+		}),
 		[
 			messages,
 			setMessages,
@@ -279,12 +281,13 @@ export const ConversationProvider = ( {
 		]
 	);
 
-	// Wait until the tool name map is populated before rendering the chat UI.
-	const isReady = Object.keys( toolNameMap ).length > 0;
+	// Wait until the tool executor is initialized before rendering the chat UI.
+	// This ensures the chat shows even if no tools are registered.
+	const isReady = toolExecutor !== null;
 
 	return (
-		<ConversationContext.Provider value={ contextValue }>
-			{ ! isReady ? <div /> : children }
+		<ConversationContext.Provider value={contextValue}>
+			{!isReady ? <div /> : children}
 		</ConversationContext.Provider>
 	);
 };
