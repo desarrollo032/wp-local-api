@@ -678,26 +678,52 @@ class WP_AI_API_Proxy {
 		$tools_count = 0;
 		$mcp_version = null;
 
-		// Check if wordpress-mcp plugin is active
-		if ( class_exists( 'WordPress_MCP' ) ) {
+		// Check multiple ways to detect wordpress-mcp plugin
+		// Method 1: Check for WPMCP() global function (recommended way)
+		if ( function_exists( 'WPMCP' ) ) {
 			$mcp_active = true;
 			$mcp_version = defined( 'WORDPRESS_MCP_VERSION' ) ? sanitize_text_field( WORDPRESS_MCP_VERSION ) : 'unknown';
 
-			// Try to get tool count from MCP registry if available
-			if ( function_exists( 'wp_mcp_get_tools' ) ) {
-				$tools = wp_mcp_get_tools();
-				$tools_count = is_array( $tools ) ? count( $tools ) : 0;
-			} elseif ( class_exists( 'WordPress_MCP\Server' ) ) {
-				// Alternative detection for different MCP versions
-				try {
-					$server = \WordPress_MCP\Server::get_instance();
-					if ( method_exists( $server, 'get_tools' ) ) {
-						$tools = $server->get_tools();
-						$tools_count = is_array( $tools ) ? count( $tools ) : 0;
-					}
-				} catch ( Exception $e ) {
-					// Server not available
+			try {
+				$mcp = WPMCP();
+				if ( method_exists( $mcp, 'get_tools' ) ) {
+					$tools = $mcp->get_tools();
+					$tools_count = is_array( $tools ) ? count( $tools ) : 0;
 				}
+			} catch ( \Exception $e ) {
+				// Function exists but might have issues
+			}
+		}
+		// Method 2: Check for the main class
+		elseif ( class_exists( 'Automattic\\WordpressMcp\\Plugin' ) ) {
+			$mcp_active = true;
+			$mcp_version = defined( 'WORDPRESS_MCP_VERSION' ) ? sanitize_text_field( WORDPRESS_MCP_VERSION ) : 'unknown';
+		}
+		// Method 3: Check for legacy class names
+		elseif ( class_exists( 'WordPress_MCP' ) ) {
+			$mcp_active = true;
+			$mcp_version = defined( 'WORDPRESS_MCP_VERSION' ) ? sanitize_text_field( WORDPRESS_MCP_VERSION ) : 'unknown';
+		}
+		// Method 4: Check if the plugin file exists and is active
+		elseif ( function_exists( 'is_plugin_active' ) ) {
+			$plugin_slugs = array(
+				'wordpress-mcp/wordpress-mcp.php',
+				'wordpress-mcp/plugin.php',
+			);
+			foreach ( $plugin_slugs as $slug ) {
+				if ( is_plugin_active( $slug ) ) {
+					$mcp_active = true;
+					break;
+				}
+			}
+		}
+
+		// If MCP is active, try to get tool count via REST endpoint
+		if ( $mcp_active && $tools_count === 0 ) {
+			// Try to call the MCP tools/list endpoint directly
+			$tools_response = $this->get_mcp_tools_internal();
+			if ( is_array( $tools_response ) ) {
+				$tools_count = count( $tools_response );
 			}
 		}
 
@@ -712,6 +738,45 @@ class WP_AI_API_Proxy {
 	}
 
 	/**
+	 * Internal method to get MCP tools.
+	 *
+	 * @return array|null Array of tools or null on failure.
+	 */
+	private function get_mcp_tools_internal() {
+		// Try using WPMCP() function
+		if ( function_exists( 'WPMCP' ) ) {
+			try {
+				$mcp = WPMCP();
+				if ( method_exists( $mcp, 'get_tools' ) ) {
+					return $mcp->get_tools();
+				}
+			} catch ( \Exception $e ) {
+				// Continue to other methods
+			}
+		}
+
+		// Try calling the MCP JSON-RPC endpoint internally
+		$request = new WP_REST_Request( 'POST', '/wp/v2/wpmcp' );
+		$request->set_body( wp_json_encode( array(
+			'jsonrpc' => '2.0',
+			'method'  => 'tools/list',
+			'id'      => 1,
+			'params'  => new \stdClass(),
+		) ) );
+		$request->set_header( 'Content-Type', 'application/json' );
+
+		$response = rest_do_request( $request );
+		if ( ! is_wp_error( $response ) && $response->get_status() === 200 ) {
+			$data = $response->get_data();
+			if ( isset( $data['result']['tools'] ) ) {
+				return $data['result']['tools'];
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Returns the list of available tools from wordpress-mcp.
 	 *
 	 * @param WP_REST_Request $request Incoming request data.
@@ -720,30 +785,48 @@ class WP_AI_API_Proxy {
 	public function mcp_tools_list( WP_REST_Request $request ) {
 		$tools = array();
 
-		// Try to get tools from MCP registry
-		if ( function_exists( 'wp_mcp_get_tools' ) ) {
-			$raw_tools = wp_mcp_get_tools();
-			if ( is_array( $raw_tools ) ) {
-				$tools = array_values( $raw_tools );
-			}
-		} elseif ( class_exists( 'WordPress_MCP\Server' ) ) {
-			// Alternative detection for different MCP versions
+		// Method 1: Try using WPMCP() function
+		if ( function_exists( 'WPMCP' ) ) {
 			try {
-				$server = \WordPress_MCP\Server::get_instance();
-				if ( method_exists( $server, 'get_tools' ) ) {
-					$raw_tools = $server->get_tools();
+				$mcp = WPMCP();
+				if ( method_exists( $mcp, 'get_tools' ) ) {
+					$raw_tools = $mcp->get_tools();
 					if ( is_array( $raw_tools ) ) {
 						$tools = array_values( $raw_tools );
 					}
 				}
-			} catch ( Exception $e ) {
-				return new WP_REST_Response(
-					array(
-						'error'   => 'MCP server not available',
-						'message' => sanitize_text_field( $e->getMessage() ),
-					),
-					500
-				);
+			} catch ( \Exception $e ) {
+				// Continue to other methods
+			}
+		}
+
+		// Method 2: Try calling the MCP JSON-RPC endpoint internally
+		if ( empty( $tools ) ) {
+			$mcp_request = new WP_REST_Request( 'POST', '/wp/v2/wpmcp' );
+			$mcp_request->set_body( wp_json_encode( array(
+				'jsonrpc' => '2.0',
+				'method'  => 'tools/list',
+				'id'      => 1,
+				'params'  => new \stdClass(),
+			) ) );
+			$mcp_request->set_header( 'Content-Type', 'application/json' );
+
+			$response = rest_do_request( $mcp_request );
+			if ( ! is_wp_error( $response ) && $response->get_status() === 200 ) {
+				$data = $response->get_data();
+				if ( isset( $data['result']['tools'] ) && is_array( $data['result']['tools'] ) ) {
+					$tools = $data['result']['tools'];
+				}
+			}
+		}
+
+		// Method 3: Legacy methods
+		if ( empty( $tools ) ) {
+			if ( function_exists( 'wp_mcp_get_tools' ) ) {
+				$raw_tools = wp_mcp_get_tools();
+				if ( is_array( $raw_tools ) ) {
+					$tools = array_values( $raw_tools );
+				}
 			}
 		}
 
@@ -781,19 +864,69 @@ class WP_AI_API_Proxy {
 		}
 		$arguments = $this->sanitize_mcp_arguments( $arguments );
 
-		// Check if MCP is active
-		if ( ! class_exists( 'WordPress_MCP' ) ) {
-			return new WP_REST_Response(
-				array(
-					'error'   => 'MCP not active',
-					'message' => 'wordpress-mcp plugin is not active',
-				),
-				503
-			);
+		// Method 1: Try using WPMCP() function
+		if ( function_exists( 'WPMCP' ) ) {
+			try {
+				$mcp = WPMCP();
+				if ( method_exists( $mcp, 'call_tool' ) ) {
+					$result = $mcp->call_tool( $tool_name, $arguments );
+					return new WP_REST_Response(
+						array(
+							'result' => $result,
+							'tool'   => $tool_name,
+						)
+					);
+				}
+			} catch ( \Exception $e ) {
+				return new WP_REST_Response(
+					array(
+						'error'   => 'Tool execution failed',
+						'message' => sanitize_text_field( $e->getMessage() ),
+						'tool'    => $tool_name,
+					),
+					500
+				);
+			}
 		}
 
+		// Method 2: Try calling the MCP JSON-RPC endpoint
+		$mcp_request = new WP_REST_Request( 'POST', '/wp/v2/wpmcp' );
+		$mcp_request->set_body( wp_json_encode( array(
+			'jsonrpc' => '2.0',
+			'method'  => 'tools/call',
+			'id'      => 1,
+			'params'  => array(
+				'name'      => $tool_name,
+				'arguments' => $arguments,
+			),
+		) ) );
+		$mcp_request->set_header( 'Content-Type', 'application/json' );
+
+		$response = rest_do_request( $mcp_request );
+		if ( ! is_wp_error( $response ) && $response->get_status() === 200 ) {
+			$data = $response->get_data();
+			if ( isset( $data['result'] ) ) {
+				return new WP_REST_Response(
+					array(
+						'result' => $data['result'],
+						'tool'   => $tool_name,
+					)
+				);
+			}
+			if ( isset( $data['error'] ) ) {
+				return new WP_REST_Response(
+					array(
+						'error'   => 'MCP tool error',
+						'message' => isset( $data['error']['message'] ) ? sanitize_text_field( $data['error']['message'] ) : 'Unknown error',
+						'tool'    => $tool_name,
+					),
+					500
+				);
+			}
+		}
+
+		// Method 3: Legacy methods
 		try {
-			// Try to execute tool using MCP registry
 			if ( function_exists( 'wp_mcp_call_tool' ) ) {
 				$result = wp_mcp_call_tool( $tool_name, $arguments );
 				return new WP_REST_Response(
@@ -802,28 +935,16 @@ class WP_AI_API_Proxy {
 						'tool'   => $tool_name,
 					)
 				);
-			} elseif ( class_exists( 'WordPress_MCP\Server' ) ) {
-				// Alternative execution for different MCP versions
-				$server = \WordPress_MCP\Server::get_instance();
-				if ( method_exists( $server, 'call_tool' ) ) {
-					$result = $server->call_tool( $tool_name, $arguments );
-					return new WP_REST_Response(
-						array(
-							'result' => $result,
-							'tool'   => $tool_name,
-						)
-					);
-				}
 			}
 
 			return new WP_REST_Response(
 				array(
-					'error'   => 'Tool execution not supported',
-					'message' => 'MCP tool execution method not found',
+					'error'   => 'MCP not available',
+					'message' => 'wordpress-mcp plugin is not active or not properly configured',
 				),
-				501
+				503
 			);
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			return new WP_REST_Response(
 				array(
 					'error'   => 'Tool execution failed',
