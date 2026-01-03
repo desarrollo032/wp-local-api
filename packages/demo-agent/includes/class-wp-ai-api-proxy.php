@@ -381,7 +381,7 @@ class WP_AI_API_Proxy {
 					if ( $a->provider_name !== 'openrouter' && $b->provider_name === 'openrouter' ) return 1;
 				}
 			}
-			}
+
 			return 0;
 		});
 
