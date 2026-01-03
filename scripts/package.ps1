@@ -170,7 +170,15 @@ function New-PluginZip {
             Remove-Item $ZipPath -Force
         }
         
-        Compress-Archive -Path $PluginDir -DestinationPath $ZipPath -CompressionLevel Optimal
+        # Cambiar al directorio temporal para asegurar estructura relativa correcta
+        Push-Location $TempDir
+        try {
+            Compress-Archive -Path $PluginName -DestinationPath $ZipPath -CompressionLevel Optimal
+        }
+        finally {
+            Pop-Location
+        }
+        
         Write-Success "ZIP creado: $ZipName"
         
         # Generar SHA256
@@ -214,7 +222,7 @@ if (-not (Test-PluginHeader $MainPhp "wp-feature-api")) {
 }
 
 # Copiar archivos
-Copy-Item $MainPhp $TempDir -Force
+Copy-Item $MainPhp (Join-Path $TempDir "wp-feature-api-core.php") -Force
 $PackageJson = Join-Path $RootDir "package.json"
 if (Test-Path $PackageJson) {
     Copy-Item $PackageJson $TempDir -Force
@@ -233,8 +241,8 @@ if (Test-Path $BuildTypes) {
 }
 
 # Generar ZIP
-if (New-PluginZip $TempDir "wp-feature-api.zip") {
-    Write-Success "wp-feature-api completado"
+if (New-PluginZip $TempDir "wp-feature-api-core.zip") {
+    Write-Success "wp-feature-api-core completado"
 } else {
     exit 1
 }
@@ -258,7 +266,7 @@ if (-not (Test-PluginHeader $AgentPhp "wp-feature-api-agent")) {
 }
 
 # Copiar archivos
-Copy-Item $AgentPhp $TempDir -Force
+Copy-Item $AgentPhp (Join-Path $TempDir "wp-feature-api-demo-agent.php") -Force
 
 $AgentPackageJson = Join-Path $RootDir "packages\demo-agent\package.json"
 if (Test-Path $AgentPackageJson) {
