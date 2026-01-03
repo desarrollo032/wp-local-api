@@ -1,0 +1,1 @@
+{"version":3,"file":"McpStatusIndicator.d.ts","sourceRoot":"","sources":["../../src/components/McpStatusIndicator.tsx"],"names":[],"mappings":"AAAA;;;;;;;GAOG;AAIH,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,iCAAiC,CAAC;AAEjE,UAAU,uBAAuB;IAChC,MAAM,EAAE,SAAS,CAAC;CAClB;AA2FD;;;;GAIG;AACH,eAAO,MAAM,kBAAkB,GAAK,YAAY,uBAAuB,gCA4BtE,CAAC;AAEF,eAAe,kBAAkB,CAAC"}

@@ -3,7 +3,7 @@
  * Plugin Name: WP Feature API - AI Agent Proxy
  * Plugin URI: https://github.com/Automattic/wp-feature-api
  * Description: Provides a REST API proxy for interacting with external AI services and includes a demo chat interface.
- * Version: 0.1.11
+ * Version: 0.1.12
  * Author: Automattic AI
  * Author URI: https://automattic.ai/
  * Text Domain: wp-feature-api-agent
@@ -88,13 +88,19 @@ function wp_feature_api_agent_enqueue_assets() {
 		return;
 	}
 
+	// Enqueue the main script.
+	$dependencies = $script_asset['dependencies'];
+
 	if ( WP_DEBUG ) {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log( 'WP Feature API Agent: Enqueuing assets successfully' );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'WP Feature API Agent: Script URL: ' . WP_AI_API_PROXY_URL . 'build/index.js' );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'WP Feature API Agent: Style URL: ' . WP_AI_API_PROXY_URL . 'build/style-index.css' );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'WP Feature API Agent: Dependencies: ' . print_r( $dependencies, true ) );
 	}
-
-	// Enqueue the main script.
-	$dependencies = $script_asset['dependencies'];
 	
 	// Only add wp-features dependency if the main plugin is active
 	if ( function_exists( 'wp_register_feature' ) ) {
@@ -151,10 +157,6 @@ function wp_feature_api_agent_add_root_container() {
 	}
 	?>
 	<div id="wp-feature-api-agent-chat"></div>
-	<script>
-		console.log('WP Feature API Agent: Chat container added to DOM');
-		console.log('Container element:', document.getElementById('wp-feature-api-agent-chat'));
-	</script>
 	<?php
 }
 add_action( 'admin_footer', 'wp_feature_api_agent_add_root_container' );

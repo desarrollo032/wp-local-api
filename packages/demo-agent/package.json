@@ -1,6 +1,6 @@
 {
   "name": "wp-feature-api-demo-agent",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "TypeScript AI agent demo for the WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -8,7 +8,7 @@
     "build": "webpack --mode production"
   },
   "peerDependencies": {
-    "@automattic/wp-feature-api": "^0.1.11",
+    "@automattic/wp-feature-api": "^0.1.12",
     "@wordpress/api-fetch": "^7.37.0",
     "@wordpress/components": "^31.0.0",
     "@wordpress/data": "^10.37.0",
@@ -20,8 +20,10 @@
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {
+    "@types/css-modules": "^1.0.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.3",
+    "@types/testing-library__jest-dom": "^5.14.9",
     "typescript": "^5.6.3"
   },
   "publishConfig": {
@@ -44,4 +46,3 @@
     "demo"
   ]
 }
-

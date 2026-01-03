@@ -42,10 +42,10 @@ jobs:
         run: npm ci
 
       - name: Build all packages
-        run: npm run build
+        run: npm run build --workspaces
 
       - name: Create package ZIPs
-        run: node scripts/create-packages-zip.js
+        run: bash scripts/package.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -58,8 +58,10 @@ jobs:
         run: |
           echo "Verifying SHA256 checksums..."
           for checksum in ${{ env.DIST_DIR }}/*.sha256; do
-            echo "Checking $(basename $checksum)..."
-            sha256sum -c "$checksum"
+            if [ -f "$checksum" ]; then
+              echo "Checking $(basename $checksum)..."
+              sha256sum -c "$checksum"
+            fi
           done
 
       - name: List generated files
@@ -93,21 +95,39 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.DIST_DIR }}/*
-          name: Release ${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
           body: |
-            ## What's New
+            ## 🚀 WordPress Feature API v${{ steps.version.outputs.version }}
 
-            Automated release generated from GitHub Actions.
+            ### ✨ Nuevas Características
+            - **OpenRouter Integration:** Integración completa con OpenRouter API y modelos gratuitos
+            - **Chat Interface:** Interfaz de chat moderna integrada en WordPress admin
+            - **MCP Support:** Compatibilidad completa con WordPress MCP plugin v0.2.5+
+            - **Build Automation:** `npm run build` ahora compila y genera ZIPs automáticamente
 
-            ### Packages
+            ### 📦 Plugins Incluidos
+            - **wp-feature-api.zip** - Plugin principal con API de funcionalidades
+            - **wp-feature-api-agent.zip** - Proxy AI + Chat interface completo
 
-            - wp-feature-api.zip - Core API client
-            - wp-feature-api-agent.zip - Client features plugin
-            - wp-feature-api-demo.zip - Demo agent plugin
+            ### 🎯 Modelos Gratuitos Soportados
+            - microsoft/phi-3-mini-128k-instruct:free
+            - huggingfaceh4/zephyr-7b-beta:free
+            - openchat/openchat-7b:free
+            - Y más modelos gratuitos...
 
-            ### Verification
+            ### 📥 Instalación
+            1. Descargar los ZIPs desde esta release
+            2. Instalar en WordPress: **Plugins → Añadir nuevo → Subir plugin**
+            3. Activar ambos plugins
+            4. Configurar OpenRouter API key en **Ajustes → WP Feature Agent Demo**
 
-            Each package includes SHA256 checksums for integrity verification.
+            ### 🔗 Enlaces Útiles
+            - [Documentación](https://github.com/Automattic/wp-feature-api#readme)
+            - [OpenRouter API Keys](https://openrouter.ai/)
+            - [WordPress MCP Plugin](https://github.com/Automattic/wordpress-mcp)
+
+            ### 🔐 Verificación
+            Cada paquete incluye checksums SHA256 para verificación de integridad.
           draft: false
           prerelease: false
         env:
@@ -116,7 +136,7 @@ jobs:
       - name: Verify release
         run: |
           echo "Release created successfully!"
-          gh release view ${{ steps.version.outputs.version }} --json assets --jq '.assets[].name'
+          gh release view v${{ steps.version.outputs.version }} --json assets --jq '.assets[].name'
 
   verify-release:
     name: Verify Release (Optional)
@@ -135,68 +155,22 @@ jobs:
         run: |
           echo "Verifying ZIP contents..."
           for zip in ${{ env.DIST_DIR }}/*.zip; do
-            echo ""
-            echo "=== $(basename $zip) ==="
-            unzip -l "$zip" | head -30
+            if [ -f "$zip" ]; then
+              echo ""
+              echo "=== $(basename $zip) ==="
+              unzip -l "$zip" | head -30
+            fi
           done
 
       - name: Verify checksums
         run: |
           echo ""
           echo "=== SHA256 Checksums ==="
-          cat ${{ env.DIST_DIR }}/*.sha256
-
-  nightly-build:
-    name: Nightly Build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !github.event.inputs.version)
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build all packages
-        run: npm run build
-
-      - name: Create package ZIPs
-        run: node scripts/create-packages-zip.js
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: nightly
-          path: ${{ env.DIST_DIR }}/
-          retention-days: 7
-
-      - name: Upload to nightly release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.DIST_DIR }}/*
-          name: Nightly Build $(date +%Y-%m-%d)
-          body: |
-            ## Nightly Build
-
-            Automated nightly build from ${{ github.sha }}
-
-            **Branch:** ${{ github.ref_name }}
-            **Commit:** ${{ github.sha }}
-
-            > ⚠️ This release is for testing purposes only.
-          draft: true
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          for checksum in ${{ env.DIST_DIR }}/*.sha256; do
+            if [ -f "$checksum" ]; then
+              cat "$checksum"
+            fi
+          done
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

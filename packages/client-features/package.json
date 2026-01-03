@@ -1,6 +1,6 @@
 {
   "name": "@wp-feature-api/client-features",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Core client-side features for WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -8,7 +8,7 @@
     "build": "webpack --mode production"
   },
   "peerDependencies": {
-    "@automattic/wp-feature-api": "^0.1.11",
+    "@automattic/wp-feature-api": "^0.1.12",
     "@wordpress/api-fetch": "^7.37.0",
     "@wordpress/block-editor": "^15.10.0",
     "@wordpress/blocks": "^15.10.0",
