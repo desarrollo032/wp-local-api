@@ -223,6 +223,7 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		align-items: center;
 		position: relative;
 		z-index: 1;
+		flex-shrink: 0;
 	}
 
 	// Model selector styling

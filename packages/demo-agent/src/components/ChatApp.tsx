@@ -93,7 +93,7 @@ export const ChatApp = () => {
 			<div className="chat-header">
 				<h2>AI Agent</h2>
 				{models && models.length > 0 && (
-					<div style={{ marginLeft: '12px', minWidth: '200px' }}>
+					<div style={{ marginLeft: '12px', minWidth: '80px', flex: 1 }}>
 						<SelectControl
 							value={selectedModel ?? ''}
 							onChange={(val) => setSelectedModel(val)}
