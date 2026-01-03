@@ -303,7 +303,14 @@ class WP_AI_API_Proxy {
 				foreach ( $models as $model ) {
 					if ( is_object( $model ) ) {
 						$model->owned_by = sanitize_text_field( $provider );
-						$all_models[]    = $model;
+						
+						// For OpenRouter, prioritize free models
+						if ( $provider === 'openrouter' ) {
+							$model->is_free = $this->is_free_openrouter_model( $model );
+							$model->provider_name = $provider;
+						}
+						
+						$all_models[] = $model;
 					}
 				}
 			}
@@ -317,12 +324,69 @@ class WP_AI_API_Proxy {
 			);
 		}
 
+		// Sort models to put free ones first for OpenRouter
+		usort( $all_models, function( $a, $b ) {
+			// If both are from OpenRouter, prioritize free models
+			if ( isset( $a->provider_name ) && isset( $b->provider_name ) && 
+				 $a->provider_name === 'openrouter' && $b->provider_name === 'openrouter' ) {
+				if ( isset( $a->is_free ) && isset( $b->is_free ) ) {
+					if ( $a->is_free && ! $b->is_free ) return -1;
+					if ( ! $a->is_free && $b->is_free ) return 1;
+				}
+			}
+			// Prioritize OpenRouter models over OpenAI when OpenRouter is selected
+			$provider = WP_AI_API_Options::get_provider();
+			if ( $provider === 'openrouter' ) {
+				if ( isset( $a->provider_name ) && isset( $b->provider_name ) ) {
+					if ( $a->provider_name === 'openrouter' && $b->provider_name !== 'openrouter' ) return -1;
+					if ( $a->provider_name !== 'openrouter' && $b->provider_name === 'openrouter' ) return 1;
+				}
+			}
+			return 0;
+		});
+
 		$response_data = (object) array(
 			'object' => 'list',
 			'data'   => $all_models,
 		);
 
 		return new WP_REST_Response( $response_data );
+	}
+
+	/**
+	 * Determines if an OpenRouter model is free.
+	 *
+	 * @param object $model The model object from OpenRouter API.
+	 * @return bool True if the model is free.
+	 */
+	private function is_free_openrouter_model( $model ) {
+		// Check if pricing information indicates free model
+		if ( isset( $model->pricing ) ) {
+			if ( isset( $model->pricing->prompt ) && isset( $model->pricing->completion ) ) {
+				$prompt_cost = floatval( $model->pricing->prompt );
+				$completion_cost = floatval( $model->pricing->completion );
+				return $prompt_cost === 0.0 && $completion_cost === 0.0;
+			}
+		}
+
+		// List of known free models on OpenRouter (updated list)
+		$free_models = array(
+			'microsoft/phi-3-mini-128k-instruct:free',
+			'microsoft/phi-3-medium-128k-instruct:free',
+			'huggingfaceh4/zephyr-7b-beta:free',
+			'openchat/openchat-7b:free',
+			'gryphe/mythomist-7b:free',
+			'undi95/toppy-m-7b:free',
+			'openrouter/auto',
+			'nousresearch/nous-capybara-7b:free',
+			'mistralai/mistral-7b-instruct:free',
+			'google/gemma-7b-it:free',
+			'meta-llama/llama-3-8b-instruct:free',
+			'qwen/qwen-2-7b-instruct:free',
+		);
+
+		$model_id = isset( $model->id ) ? $model->id : '';
+		return in_array( $model_id, $free_models, true );
 	}
 
 	/**
@@ -377,6 +441,12 @@ class WP_AI_API_Proxy {
 			'Authorization' => $auth_header,
 		);
 
+		// Add OpenRouter specific headers for better compatibility
+		if ( $target_service === 'openrouter' ) {
+			$outgoing_headers['HTTP-Referer'] = home_url();
+			$outgoing_headers['X-Title'] = get_bloginfo( 'name' ) . ' - WordPress Feature API Demo';
+		}
+
 		$outgoing_headers = array_filter( $outgoing_headers );
 
 		$query_params = $request->get_query_params();
@@ -417,7 +487,11 @@ class WP_AI_API_Proxy {
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
 				'proxy_request_failed',
-				__( 'Failed to connect to the AI service.', 'wp-feature-api-agent' ),
+				sprintf(
+					/* translators: %s: Error message */
+					__( 'Failed to connect to the AI service: %s', 'wp-feature-api-agent' ),
+					$response->get_error_message()
+				),
 				array( 'status' => 502 )
 			);
 		}
@@ -425,6 +499,15 @@ class WP_AI_API_Proxy {
 		$response_code    = wp_remote_retrieve_response_code( $response );
 		$response_headers = wp_remote_retrieve_headers( $response );
 		$response_body    = wp_remote_retrieve_body( $response );
+
+		// Handle empty response body
+		if ( empty( $response_body ) ) {
+			return new WP_Error(
+				'empty_response',
+				__( 'Empty response from AI service.', 'wp-feature-api-agent' ),
+				array( 'status' => 502 )
+			);
+		}
 
 		$client_headers = array();
 		if ( isset( $response_headers['content-type'] ) ) {
@@ -435,19 +518,47 @@ class WP_AI_API_Proxy {
 			$client_headers['X-Request-ID'] = sanitize_text_field( $response_headers['x-request-id'] );
 		}
 
-		$wp_response = new WP_REST_Response( $response_body, $response_code );
+		// Create response with original body first
+		$wp_response = new WP_REST_Response( null, $response_code );
 
 		foreach ( $client_headers as $key => $value ) {
 			$wp_response->header( $key, $value );
 		}
 
-		// Process JSON responses
-		if ( isset( $client_headers['Content-Type'] ) && str_contains( strtolower( $client_headers['Content-Type'] ), 'application/json' ) ) {
-			$decoded_body = json_decode( $response_body );
-			if ( json_last_error() === JSON_ERROR_NONE ) {
-				$wp_response->set_data( $decoded_body );
+		// Process JSON responses with better error handling
+		$is_json = isset( $client_headers['Content-Type'] ) && 
+				   ( str_contains( strtolower( $client_headers['Content-Type'] ), 'application/json' ) ||
+					 str_contains( strtolower( $client_headers['Content-Type'] ), 'text/event-stream' ) );
+
+		if ( $is_json ) {
+			// Handle streaming responses (Server-Sent Events)
+			if ( str_contains( strtolower( $client_headers['Content-Type'] ), 'text/event-stream' ) ) {
+				// For streaming responses, return the raw body
+				$wp_response->set_data( $response_body );
+			} else {
+				// Handle regular JSON responses
+				$decoded_body = json_decode( $response_body, true );
+				if ( json_last_error() === JSON_ERROR_NONE && $decoded_body !== null ) {
+					$wp_response->set_data( $decoded_body );
+				} else {
+					// If JSON decode fails, return raw body but log the error
+					if ( WP_DEBUG ) {
+						error_log( 'WP Feature API Proxy: JSON decode error: ' . json_last_error_msg() );
+						error_log( 'WP Feature API Proxy: Response body: ' . substr( $response_body, 0, 500 ) );
+					}
+					
+					// Try to return a structured error response
+					$wp_response->set_data( array(
+						'error' => array(
+							'message' => 'Invalid JSON response from AI service',
+							'type' => 'proxy_error',
+							'raw_response' => substr( $response_body, 0, 1000 ) // First 1000 chars for debugging
+						)
+					) );
+				}
 			}
 		} else {
+			// For non-JSON responses, return raw body
 			$wp_response->set_data( $response_body );
 		}
 

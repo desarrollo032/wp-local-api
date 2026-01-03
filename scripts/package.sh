@@ -284,56 +284,14 @@ build_wp_feature_api_agent() {
         return 1
     fi
     
-    # Copiar archivos (renombrar PHP a agent)
+    # Copiar archivos
     cp "$ROOT_DIR/packages/demo-agent/wp-feature-api-agent.php" "$temp_dir/wp-feature-api-agent.php"
-    cp "$ROOT_DIR/packages/client-features/package.json" "$temp_dir/package.json"
-    cp "$ROOT_DIR/packages/client-features/README.md" "$temp_dir/README.md"
+    cp "$ROOT_DIR/packages/demo-agent/package.json" "$temp_dir/package.json" 2>/dev/null || true
+    cp "$ROOT_DIR/packages/client-features/README.md" "$temp_dir/README.md" 2>/dev/null || true
     
     copy_with_exclusions "$ROOT_DIR/packages/demo-agent/includes" "$temp_dir/includes"
     copy_with_exclusions "$ROOT_DIR/packages/demo-agent/build" "$temp_dir/build"
     copy_with_exclusions "$ROOT_DIR/packages/client-features/build" "$temp_dir/build-features"
-    
-    # Generar ZIP
-    local zip_name="${pkg_name}.zip"
-    if ! create_zip "$temp_dir" "$zip_name"; then
-        return 1
-    fi
-    
-    # Generar SHA256
-    generate_sha256 "$DIST_DIR/$zip_name"
-    
-    # Limpiar temp
-    rm -rf "$temp_dir"
-    
-    log_success "✅ $pkg_name completado"
-    return 0
-}
-
-###############################################################################
-# Construir wp-feature-api-demo.zip
-###############################################################################
-build_wp_feature_api_demo() {
-    local pkg_name="wp-feature-api-demo"
-    local temp_dir="$DIST_DIR/.temp.$pkg_name"
-    
-    log_header "Construyendo: $pkg_name"
-    
-    # Limpiar y crear temp
-    rm -rf "$temp_dir"
-    mkdir -p "$temp_dir"
-    
-    # Validar archivo PHP principal
-    if ! validate_plugin_header "$ROOT_DIR/packages/demo-agent/wp-feature-api-demo.php" "$pkg_name"; then
-        return 1
-    fi
-    
-    # Copiar archivos
-    cp "$ROOT_DIR/packages/demo-agent/wp-feature-api-demo.php" "$temp_dir/wp-feature-api-demo.php"
-    cp "$ROOT_DIR/packages/demo-agent/package.json" "$temp_dir/package.json" 2>/dev/null || true
-    cp "$ROOT_DIR/packages/demo-agent/README.md" "$temp_dir/README.md" 2>/dev/null || true
-    
-    copy_with_exclusions "$ROOT_DIR/packages/demo-agent/includes" "$temp_dir/includes"
-    copy_with_exclusions "$ROOT_DIR/packages/demo-agent/build" "$temp_dir/build"
     
     # Generar ZIP
     local zip_name="${pkg_name}.zip"
@@ -396,27 +354,22 @@ show_verification_commands() {
     echo "1. Verificar estructura del ZIP:"
     echo "   unzip -l dist/wp-feature-api.zip"
     echo "   unzip -l dist/wp-feature-api-agent.zip"
-    echo "   unzip -l dist/wp-feature-api-demo.zip"
     echo ""
     echo "2. Revisar carpetas descomprimidas:"
     echo "   ls -la dist/wp-feature-api/"
     echo "   ls -la dist/wp-feature-api-agent/"
-    echo "   ls -la dist/wp-feature-api-demo/"
     echo ""
     echo "3. Verificar checksums:"
     echo "   sha256sum -c dist/wp-feature-api.zip.sha256"
     echo "   sha256sum -c dist/wp-feature-api-agent.zip.sha256"
-    echo "   sha256sum -c dist/wp-feature-api-demo.zip.sha256"
     echo ""
     echo "4. Verificar archivos PHP principales:"
     echo "   head -20 dist/wp-feature-api/wp-feature-api.php"
     echo "   head -20 dist/wp-feature-api-agent/wp-feature-api-agent.php"
-    echo "   head -20 dist/wp-feature-api-demo/wp-feature-api-demo.php"
     echo ""
     echo "5. Verificar builds:"
     echo "   ls -la dist/wp-feature-api/build/"
     echo "   ls -la dist/wp-feature-api-agent/build/"
-    echo "   ls -la dist/wp-feature-api-demo/build/"
     echo ""
     echo "6. Verificar con WP-CLI (si WordPress está instalado):"
     echo "   wp plugin install ./dist/wp-feature-api.zip --force"
@@ -509,8 +462,6 @@ main() {
     build_wp_feature_api || exit 1
     echo ""
     build_wp_feature_api_agent || exit 1
-    echo ""
-    build_wp_feature_api_demo || exit 1
     
     # Mostrar resultados
     show_dist_structure

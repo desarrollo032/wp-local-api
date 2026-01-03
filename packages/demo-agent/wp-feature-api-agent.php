@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Feature API - AI Agent Proxy
  * Plugin URI: https://github.com/Automattic/wp-feature-api
- * Description: Provides a REST API proxy for interacting with external AI services.
+ * Description: Provides a REST API proxy for interacting with external AI services and includes a demo chat interface.
  * Version: 0.1.11
  * Author: Automattic AI
  * Author URI: https://automattic.ai/
@@ -15,8 +15,9 @@
  * @package WordPress\Feature_API_Agent
  */
 
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+	exit;
 }
 
 define( 'WP_AI_API_PROXY_PATH', plugin_dir_path( __FILE__ ) );
@@ -40,26 +41,72 @@ $options_instance->init();
 
 // Register additional demo features.
 $feature_register_instance = new A8C\WpFeatureApiAgent\WP_Feature_Register();
-add_action( 'wp_feature_api_init', array( $feature_register_instance, 'register_features' ) );
+// Only register features if the main wp-feature-api plugin is active
+if ( function_exists( 'wp_register_feature' ) ) {
+	add_action( 'wp_feature_api_init', array( $feature_register_instance, 'register_features' ) );
+} else {
+	// Log a warning if WP_DEBUG is enabled
+	if ( WP_DEBUG ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+		trigger_error( 'WP Feature API plugin not found. Some features may not be available.', E_USER_NOTICE );
+	}
+}
 
 /**
  * Enqueues scripts and styles for the admin area.
  *
+ * @since 0.1.11
+ * @return void
  */
 function wp_feature_api_agent_enqueue_assets() {
- $script_asset_path = WP_AI_API_PROXY_PATH . 'build/index.asset.php';
- if ( ! file_exists( $script_asset_path ) ) {
+	// Only load in admin area
+	if ( ! is_admin() ) {
 		return;
 	}
+
+	$script_asset_path = WP_AI_API_PROXY_PATH . 'build/index.asset.php';
+	if ( ! file_exists( $script_asset_path ) ) {
+		if ( WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+			trigger_error( 'AI Agent assets not found. Please run the build process.', E_USER_WARNING );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'WP Feature API Agent: Asset file not found at: ' . $script_asset_path );
+		}
+		return;
+	}
+	
 	$script_asset = require $script_asset_path;
 
+	// Validate asset structure
+	if ( ! is_array( $script_asset ) || ! isset( $script_asset['dependencies'] ) || ! isset( $script_asset['version'] ) ) {
+		if ( WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+			trigger_error( 'Invalid AI Agent asset structure.', E_USER_WARNING );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'WP Feature API Agent: Invalid asset structure: ' . print_r( $script_asset, true ) );
+		}
+		return;
+	}
+
+	if ( WP_DEBUG ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'WP Feature API Agent: Enqueuing assets successfully' );
+	}
+
 	// Enqueue the main script.
+	$dependencies = $script_asset['dependencies'];
+	
+	// Only add wp-features dependency if the main plugin is active
+	if ( function_exists( 'wp_register_feature' ) ) {
+		$dependencies[] = 'wp-features';
+	}
+	
 	wp_enqueue_script(
 		'wp-feature-api-agent-script',
 		WP_AI_API_PROXY_URL . 'build/index.js',
-		array_merge( $script_asset['dependencies'], array( 'wp-features' ) ),
+		$dependencies,
 		$script_asset['version'],
-		true // Load in footer.
+		array( 'in_footer' => true )
 	);
 
 	// Note: wp-scripts names the CSS file based on the importing JS/TS entry point (index.tsx -> style-index.css)
@@ -83,11 +130,31 @@ function wp_feature_api_agent_enqueue_assets() {
 add_action( 'admin_enqueue_scripts', 'wp_feature_api_agent_enqueue_assets' );
 
 /**
-	* Adds the root container div to the admin footer.
-	*/
+ * Adds the root container div to the admin footer.
+ *
+ * @since 0.1.11
+ * @return void
+ */
 function wp_feature_api_agent_add_root_container() {
+	// Only show to users who can manage options
+	if ( ! current_user_can( 'manage_options' ) ) {
+		if ( WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'WP Feature API Agent: User does not have manage_options capability' );
+		}
+		return;
+	}
+	
+	if ( WP_DEBUG ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'WP Feature API Agent: Adding chat container to admin footer' );
+	}
 	?>
 	<div id="wp-feature-api-agent-chat"></div>
+	<script>
+		console.log('WP Feature API Agent: Chat container added to DOM');
+		console.log('Container element:', document.getElementById('wp-feature-api-agent-chat'));
+	</script>
 	<?php
 }
 add_action( 'admin_footer', 'wp_feature_api_agent_add_root_container' );

@@ -71,10 +71,15 @@ export const ChatApp = () => {
 						<SelectControl
 							value={ selectedModel ?? '' }
 							onChange={ ( val ) => setSelectedModel( val ) }
-							options={ models.map( ( m ) => ( {
-								label: `${ m.id } (${ m.owned_by ?? '' })`,
-								value: m.id,
-							} ) ) }
+							options={ models.map( ( m ) => {
+								const isFree = m.raw?.is_free;
+								const provider = m.raw?.provider_name || m.owned_by || '';
+								const freeLabel = isFree ? ' (FREE)' : '';
+								return {
+									label: `${ m.id }${ freeLabel } (${ provider })`,
+									value: m.id,
+								};
+							} ) }
 						/>
 					</div>
 				) }

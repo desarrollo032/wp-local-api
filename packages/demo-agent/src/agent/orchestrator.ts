@@ -134,11 +134,31 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 				// eslint-disable-next-line no-console
 				console.log( 'Received response from API Proxy:', response );
 
-				const messageFromAPI = response?.choices?.[ 0 ]?.message;
+				// Handle different response structures from different providers
+				let messageFromAPI;
+				
+				// Check for OpenAI/OpenRouter standard structure
+				if ( response?.choices?.[ 0 ]?.message ) {
+					messageFromAPI = response.choices[ 0 ].message;
+				}
+				// Check for direct message structure (some proxies might return this)
+				else if ( response?.message ) {
+					messageFromAPI = response.message;
+				}
+				// Check for error structure
+				else if ( response?.error ) {
+					throw new Error( `API Error: ${ response.error.message || response.error }` );
+				}
+				// Handle raw response that might be the message itself
+				else if ( response?.role && ( response?.content || response?.tool_calls ) ) {
+					messageFromAPI = response;
+				}
 
 				if ( ! messageFromAPI ) {
+					// eslint-disable-next-line no-console
+					console.error( 'Unexpected response structure:', response );
 					throw new Error(
-						'Invalid response structure from API proxy.'
+						`Invalid response structure from API proxy. Expected message with choices array, got: ${ JSON.stringify( response ).substring( 0, 200 ) }...`
 					);
 				}
 

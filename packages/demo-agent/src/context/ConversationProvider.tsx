@@ -166,10 +166,21 @@ export const ConversationProvider = ( {
 					const parsed = data.map( ( m: any, i: number ) => ( {
 						id: m.id ?? m.model ?? m.name ?? String( i ),
 						owned_by: m.owned_by,
+						is_free: m.is_free,
+						provider_name: m.provider_name,
 						raw: m,
 					} ) );
 					setModels( parsed );
-					if ( parsed.length > 0 ) {
+					
+					// Prioritize free models for default selection
+					const freeModels = parsed.filter( ( m ) => m.is_free );
+					const openRouterModels = parsed.filter( ( m ) => m.provider_name === 'openrouter' );
+					
+					if ( freeModels.length > 0 ) {
+						setSelectedModel( freeModels[ 0 ].id );
+					} else if ( openRouterModels.length > 0 ) {
+						setSelectedModel( openRouterModels[ 0 ].id );
+					} else if ( parsed.length > 0 ) {
 						setSelectedModel( parsed[ 0 ].id );
 					}
 				}
@@ -198,7 +209,20 @@ export const ConversationProvider = ( {
 			}
 
 			// Use selectedModel if available, otherwise fallback to a sensible default.
-			const defaultModel = selectedModel ?? 'gpt-4o';
+			// For OpenRouter, prefer a free model as default
+			let defaultModel = selectedModel;
+			if ( ! defaultModel ) {
+				// Try to get a free OpenRouter model from the models list if available
+				const freeOpenRouterModels = models.filter( 
+					( m ) => m.raw?.is_free && m.raw?.provider_name === 'openrouter' 
+				);
+				if ( freeOpenRouterModels.length > 0 ) {
+					defaultModel = freeOpenRouterModels[ 0 ].id;
+				} else {
+					// Fallback to a known free model or gpt-4o
+					defaultModel = 'microsoft/phi-3-mini-128k-instruct:free';
+				}
+			}
 
 			setIsLoading( true );
 
