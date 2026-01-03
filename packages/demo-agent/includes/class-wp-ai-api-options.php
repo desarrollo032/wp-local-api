@@ -192,6 +192,24 @@ class WP_AI_API_Options {
 	}
 
 	/**
+	 * Renders the MCP section description.
+	 */
+	public function render_mcp_section_description() {
+		?>
+		<p><?php esc_html_e( 'Configure authentication for the WordPress MCP server to enable AI-powered WordPress management.', 'wp-feature-api-agent' ); ?></p>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %s: URL to wordpress-mcp plugin */
+				esc_html__( 'Requires the %s plugin to be installed and activated.', 'wp-feature-api-agent' ),
+				'<a href="https://github.com/Automattic/wordpress-mcp" target="_blank">wordpress-mcp</a>'
+			);
+			?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Renders the OpenAI API key field.
 	 */
 	public function render_openai_api_key_field() {
@@ -255,6 +273,38 @@ class WP_AI_API_Options {
 		<p class="description">
 			<?php esc_html_e( 'Optional: Override the OpenRouter API host (e.g., https://your-openrouter-host/v1).', 'wp-feature-api-agent' ); ?>
 		</p>
+		<?php
+	}
+
+	/**
+	 * Renders the MCP authentication token field.
+	 */
+	public function render_mcp_token_field() {
+		$value = get_option( self::MCP_TOKEN_OPTION_NAME );
+		$mcp_active = function_exists( 'WPMCP' ) || class_exists( 'Automattic\\WordpressMcp\\Plugin' );
+		?>
+		<input type="password"
+			   name="<?php echo esc_attr( self::MCP_TOKEN_OPTION_NAME ); ?>"
+			   value="<?php echo esc_attr( $value ); ?>"
+			   class="regular-text"
+			   <?php echo ! $mcp_active ? 'disabled' : ''; ?>
+		/>
+		<?php if ( ! $mcp_active ) : ?>
+			<p class="description" style="color: #d63638;">
+				<strong><?php esc_html_e( 'WordPress MCP plugin is not installed or activated.', 'wp-feature-api-agent' ); ?></strong><br>
+				<?php
+				printf(
+					/* translators: %s: URL to wordpress-mcp plugin */
+					esc_html__( 'Install from: %s', 'wp-feature-api-agent' ),
+					'<a href="https://github.com/Automattic/wordpress-mcp" target="_blank">https://github.com/Automattic/wordpress-mcp</a>'
+				);
+				?>
+			</p>
+		<?php else : ?>
+			<p class="description">
+				<?php esc_html_e( 'Enter the authentication token for the WordPress MCP server. This allows the AI to perform actions on your WordPress site.', 'wp-feature-api-agent' ); ?>
+			</p>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -349,5 +399,14 @@ class WP_AI_API_Options {
 	 */
 	public static function get_openrouter_api_host(): string {
 		return get_option( self::OPENROUTER_HOST_OPTION, '' );
+	}
+
+	/**
+	 * Get the MCP authentication token.
+	 *
+	 * @return string The MCP token or empty string.
+	 */
+	public static function get_mcp_token(): string {
+		return get_option( self::MCP_TOKEN_OPTION_NAME, '' );
 	}
 }
