@@ -60,12 +60,14 @@ class WP_AI_API_Options {
 	 * Adds the options page to the admin menu.
 	 */
 	public function add_options_page() {
-		add_options_page(
+		add_menu_page(
 			__( 'WP Feature Agent Demo - Settings', 'wp-feature-api-agent' ),
-			__( 'WP Feature Agent Demo', 'wp-feature-api-agent' ),
+			__( 'Agent Demo', 'wp-feature-api-agent' ),
 			'manage_options',
 			self::OPTION_PAGE,
-			array( $this, 'render_options_page' )
+			array( $this, 'render_options_page' ),
+			'dashicons-superhero',
+			30
 		);
 	}
 

@@ -3,7 +3,7 @@
  * Plugin Name: WP Feature API - AI Agent Proxy
  * Plugin URI: https://github.com/Automattic/wp-feature-api
  * Description: Provides a REST API proxy for interacting with external AI services and includes a demo chat interface.
- * Version: 0.1.12
+ * Version: 0.1.13
  * Author: Automattic AI
  * Author URI: https://automattic.ai/
  * Text Domain: wp-feature-api-agent

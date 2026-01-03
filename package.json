@@ -1,6 +1,6 @@
 {
 	"name": "wp-feature-api",
-	"version": "0.1.12",
+	"version": "0.1.13",
 	"description": "WordPress Feature API - System for exposing server and client-side functionality in WordPress for use in LLMs and agentic systems.",
 	"author": "Automattic AI",
 	"license": "GPL-2.0-or-later",

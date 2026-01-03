@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Feature API
  * Plugin URI: https://github.com/Automattic/wp-feature-api
  * Description: A system for exposing server and client-side functionality in WordPress for use in LLMs and agentic systems.
- * Version: 0.1.12
+ * Version: 0.1.13
  * Author: Automattic AI
  * Author URI: https://automattic.ai/
  * Text Domain: wp-feature-api
