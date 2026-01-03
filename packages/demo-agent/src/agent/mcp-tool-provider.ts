@@ -18,7 +18,7 @@ interface McpToolProviderConfig {
 	 * Custom API client function for making REST requests.
 	 * Defaults to using wp.apiFetch if available.
 	 */
-	apiClient?: ( endpoint: string, data?: unknown ) => Promise< unknown >;
+	apiClient?: (endpoint: string, data?: unknown) => Promise<unknown>;
 }
 
 /**
@@ -37,7 +37,7 @@ export interface McpStatus {
 interface McpTool {
 	name: string;
 	description: string;
-	input_schema?: Record< string, unknown >;
+	input_schema?: Record<string, unknown>;
 }
 
 /**
@@ -66,28 +66,28 @@ export const createMcpToolProvider = (
 	 */
 	const apiClient =
 		config.apiClient ??
-		( async ( endpoint: string ) => {
-			const wpApiFetch = ( window as any ).wp?.apiFetch;
-			if ( ! wpApiFetch ) {
+		(async (endpoint: string) => {
+			const wpApiFetch = (window as any).wp?.apiFetch;
+			if (!wpApiFetch) {
 				throw new Error(
 					'wp.apiFetch is not available. Ensure script dependencies are loaded.'
 				);
 			}
-			return await wpApiFetch( { path: endpoint } );
-		} );
+			return await wpApiFetch({ path: endpoint });
+		});
 
 	/**
 	 * Checks if the MCP plugin is active and returns its status.
 	 */
-	const checkMcpStatus = async (): Promise< McpStatus > => {
+	const checkMcpStatus = async (): Promise<McpStatus> => {
 		try {
-			const response = ( await apiClient(
-				'/wp/v2/ai-api-proxy/v1/mcp/status'
-			) ) as McpStatus;
+			const response = (await apiClient(
+				'/ai-api-proxy/v1/mcp/status'
+			)) as McpStatus;
 			return response;
-		} catch ( error ) {
+		} catch (error) {
 			// eslint-disable-next-line no-console
-			console.warn( 'MCP status check failed:', error );
+			console.warn('MCP status check failed:', error);
 			return {
 				is_active: false,
 				tools_count: 0,
@@ -99,12 +99,12 @@ export const createMcpToolProvider = (
 	/**
 	 * Fetches tools from the MCP server and maps them to the agent's Tool format.
 	 */
-	const getTools = async (): Promise< Tool[] > => {
+	const getTools = async (): Promise<Tool[]> => {
 		try {
 			// First, check if MCP is active
 			const status = await checkMcpStatus();
 
-			if ( ! status.is_active ) {
+			if (!status.is_active) {
 				// eslint-disable-next-line no-console
 				console.log(
 					'MCP plugin is not active. MCP tools will not be available.'
@@ -113,56 +113,56 @@ export const createMcpToolProvider = (
 			}
 
 			// Fetch tools from MCP server
-			const response = ( await apiClient(
-				'/wp/v2/ai-api-proxy/v1/mcp/tools'
-			) ) as McpToolsResponse;
+			const response = (await apiClient(
+				'/ai-api-proxy/v1/mcp/tools'
+			)) as McpToolsResponse;
 
-			if ( response.error ) {
+			if (response.error) {
 				// eslint-disable-next-line no-console
-				console.error( 'MCP tools fetch error:', response.message );
+				console.error('MCP tools fetch error:', response.message);
 				return [];
 			}
 
-			if ( ! response.tools || ! Array.isArray( response.tools ) ) {
+			if (!response.tools || !Array.isArray(response.tools)) {
 				return [];
 			}
 
 			// Map MCP tools to the agent's Tool interface
 			const tools: Tool[] = response.tools.map(
-				( tool: McpTool ): Tool => {
+				(tool: McpTool): Tool => {
 					return {
-						name: `mcp_${ tool.name }`,
+						name: `mcp_${tool.name}`,
 						displayName: tool.name,
 						description: tool.description,
 						parameters: tool.input_schema || {},
 						execute: async (
-							args: Record< string, unknown >
-						): Promise< ToolResult > => {
+							args: Record<string, unknown>
+						): Promise<ToolResult> => {
 							try {
 								// Execute MCP tool via REST API
-								const wpApiFetch = ( window as any ).wp
+								const wpApiFetch = (window as any).wp
 									?.apiFetch;
-								if ( ! wpApiFetch ) {
+								if (!wpApiFetch) {
 									return {
 										result: null,
 										error: 'wp.apiFetch is not available',
 									};
 								}
 
-								const result = await wpApiFetch( {
-									path: '/wp/v2/ai-api-proxy/v1/mcp/call',
+								const result = await wpApiFetch({
+									path: '/ai-api-proxy/v1/mcp/call',
 									method: 'POST',
 									data: {
 										tool: tool.name,
 										arguments: args,
 									},
-								} );
+								});
 
 								return { result };
-							} catch ( error ) {
+							} catch (error) {
 								// eslint-disable-next-line no-console
 								console.error(
-									`Error executing MCP tool "${ tool.name }":`,
+									`Error executing MCP tool "${tool.name}":`,
 									error
 								);
 								return {
@@ -179,9 +179,9 @@ export const createMcpToolProvider = (
 			);
 
 			return tools;
-		} catch ( error ) {
+		} catch (error) {
 			// eslint-disable-next-line no-console
-			console.error( 'Error fetching MCP tools:', error );
+			console.error('Error fetching MCP tools:', error);
 			return [];
 		}
 	};
@@ -195,19 +195,19 @@ export const createMcpToolProvider = (
  * Utility function to check if MCP is active.
  * Can be used to conditionally enable features based on MCP availability.
  */
-export const isMcpActive = async (): Promise< boolean > => {
+export const isMcpActive = async (): Promise<boolean> => {
 	try {
-		const wpApiFetch = ( window as any ).wp?.apiFetch;
-		if ( ! wpApiFetch ) {
+		const wpApiFetch = (window as any).wp?.apiFetch;
+		if (!wpApiFetch) {
 			return false;
 		}
 
-		const response = await wpApiFetch( {
-			path: '/wp/v2/ai-api-proxy/v1/mcp/status',
-		} );
+		const response = await wpApiFetch({
+			path: '/ai-api-proxy/v1/mcp/status',
+		});
 
-		return ( response as McpStatus ).is_active === true;
-	} catch ( error ) {
+		return (response as McpStatus).is_active === true;
+	} catch (error) {
 		return false;
 	}
 };
@@ -215,10 +215,10 @@ export const isMcpActive = async (): Promise< boolean > => {
 /**
  * Utility function to get the MCP status with full details.
  */
-export const getMcpStatus = async (): Promise< McpStatus > => {
+export const getMcpStatus = async (): Promise<McpStatus> => {
 	try {
-		const wpApiFetch = ( window as any ).wp?.apiFetch;
-		if ( ! wpApiFetch ) {
+		const wpApiFetch = (window as any).wp?.apiFetch;
+		if (!wpApiFetch) {
 			return {
 				is_active: false,
 				tools_count: 0,
@@ -226,12 +226,12 @@ export const getMcpStatus = async (): Promise< McpStatus > => {
 			};
 		}
 
-		const response = await wpApiFetch( {
-			path: '/wp/v2/ai-api-proxy/v1/mcp/status',
-		} );
+		const response = await wpApiFetch({
+			path: '/ai-api-proxy/v1/mcp/status',
+		});
 
 		return response as McpStatus;
-	} catch ( error ) {
+	} catch (error) {
 		return {
 			is_active: false,
 			tools_count: 0,

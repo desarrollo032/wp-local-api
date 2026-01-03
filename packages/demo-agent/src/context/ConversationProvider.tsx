@@ -150,7 +150,7 @@ export const ConversationProvider = ({
 					return;
 				}
 				const resp = await apiFetch({
-					path: '/wp/v2/ai-api-proxy/v1/mcp/status',
+					path: '/ai-api-proxy/v1/mcp/status',
 				});
 				setMcpStatus(resp);
 			} catch (e) {
@@ -173,7 +173,7 @@ export const ConversationProvider = ({
 					return;
 				}
 				const resp = await apiFetch({
-					path: '/wp/v2/ai-api-proxy/v1/models',
+					path: '/ai-api-proxy/v1/models',
 				});
 				const data = resp?.data ?? resp;
 				if (Array.isArray(data)) {

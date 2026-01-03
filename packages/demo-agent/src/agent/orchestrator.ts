@@ -18,7 +18,7 @@ export type ApiClient = (
 		tools?: any[];
 		tool_choice?: string;
 	}
-) => Promise< any >;
+) => Promise<any>;
 
 /**
  * Dependencies required by the agent orchestrator.
@@ -45,7 +45,7 @@ export interface Agent {
 		query: string,
 		currentMessages: Message[],
 		modelId: string
-	) => AsyncGenerator< Message >;
+	) => AsyncGenerator<Message>;
 }
 
 /**
@@ -53,14 +53,14 @@ export interface Agent {
  * @param deps Dependencies like the API client and optional tool executor.
  * @return An Agent instance.
  */
-export const createAgent = ( deps: AgentDependencies ): Agent => {
+export const createAgent = (deps: AgentDependencies): Agent => {
 	const { apiClient, toolExecutor, mcpStatus } = deps; // Destructure dependencies
 
 	const processQuery = async function* (
 		query: string,
 		currentMessages: Message[],
 		modelId: string
-	): AsyncGenerator< Message > {
+	): AsyncGenerator<Message> {
 		const userMessage: Message = { role: 'user', content: query };
 		yield userMessage;
 
@@ -78,18 +78,18 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 		// If the first message in currentMessages is already a system message, don't add another one
 		const hasSystemMessage =
 			currentMessages.length > 0 &&
-			currentMessages[ 0 ].role === 'system';
+			currentMessages[0].role === 'system';
 
 		const initialHistory: Message[] = hasSystemMessage
-			? [ ...currentMessages, userMessage ]
-			: [ systemMessage, ...currentMessages, userMessage ];
+			? [...currentMessages, userMessage]
+			: [systemMessage, ...currentMessages, userMessage];
 
-		const currentTurnHistory: Message[] = [ ...initialHistory ];
+		const currentTurnHistory: Message[] = [...initialHistory];
 
 		let loopCount = 0;
 		const MAX_LOOPS = 10;
 
-		while ( loopCount < MAX_LOOPS ) {
+		while (loopCount < MAX_LOOPS) {
 			loopCount++;
 			let assistantResponseContent: string | null = null;
 			let toolCallsFromResponse: any[] | null = null;
@@ -100,24 +100,24 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 					model: modelId,
 				};
 
-				if ( toolExecutor && toolExecutor.listTools().length > 0 ) {
+				if (toolExecutor && toolExecutor.listTools().length > 0) {
 					apiPayload.tools = toolExecutor
 						.listTools()
-						.map( ( tool ) => ( {
+						.map((tool) => ({
 							type: 'function',
 							function: {
 								name: tool.name,
 								description: tool.description,
 								parameters: tool.parameters,
 							},
-						} ) );
+						}));
 					apiPayload.tool_choice = 'auto';
 				}
 
 				// eslint-disable-next-line no-console
 				console.log(
 					'Calling API Proxy with history:',
-					JSON.stringify( currentTurnHistory, null, 2 )
+					JSON.stringify(currentTurnHistory, null, 2)
 				);
 
 				// eslint-disable-next-line no-console
@@ -127,38 +127,38 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 				);
 
 				const response = await apiClient(
-					'/wp/v2/ai-api-proxy/v1/chat/completions',
+					'/ai-api-proxy/v1/chat/completions',
 					apiPayload
 				);
 
 				// eslint-disable-next-line no-console
-				console.log( 'Received response from API Proxy:', response );
+				console.log('Received response from API Proxy:', response);
 
 				// Handle different response structures from different providers
 				let messageFromAPI;
-				
+
 				// Check for OpenAI/OpenRouter standard structure
-				if ( response?.choices?.[ 0 ]?.message ) {
-					messageFromAPI = response.choices[ 0 ].message;
+				if (response?.choices?.[0]?.message) {
+					messageFromAPI = response.choices[0].message;
 				}
 				// Check for direct message structure (some proxies might return this)
-				else if ( response?.message ) {
+				else if (response?.message) {
 					messageFromAPI = response.message;
 				}
 				// Check for error structure
-				else if ( response?.error ) {
-					throw new Error( `API Error: ${ response.error.message || response.error }` );
+				else if (response?.error) {
+					throw new Error(`API Error: ${response.error.message || response.error}`);
 				}
 				// Handle raw response that might be the message itself
-				else if ( response?.role && ( response?.content || response?.tool_calls ) ) {
+				else if (response?.role && (response?.content || response?.tool_calls)) {
 					messageFromAPI = response;
 				}
 
-				if ( ! messageFromAPI ) {
+				if (!messageFromAPI) {
 					// eslint-disable-next-line no-console
-					console.error( 'Unexpected response structure:', response );
+					console.error('Unexpected response structure:', response);
 					throw new Error(
-						`Invalid response structure from API proxy. Expected message with choices array, got: ${ JSON.stringify( response ).substring( 0, 200 ) }...`
+						`Invalid response structure from API proxy. Expected message with choices array, got: ${JSON.stringify(response).substring(0, 200)}...`
 					);
 				}
 
@@ -169,7 +169,7 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 					role: 'assistant',
 					content:
 						assistantResponseContent ??
-						( toolCallsFromResponse ? '' : null ),
+						(toolCallsFromResponse ? '' : null),
 					tool_calls: toolCallsFromResponse || undefined,
 				};
 
@@ -177,18 +177,18 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 					assistantTurnMessage.content !== null ||
 					assistantTurnMessage.tool_calls?.length
 				) {
-					currentTurnHistory.push( assistantTurnMessage );
+					currentTurnHistory.push(assistantTurnMessage);
 					yield assistantTurnMessage;
 				}
 
 				if (
-					! toolCallsFromResponse ||
+					!toolCallsFromResponse ||
 					toolCallsFromResponse.length === 0
 				) {
 					break; // No tool calls, conversation segment is complete, exit the loop
 				}
 
-				if ( ! toolExecutor ) {
+				if (!toolExecutor) {
 					const toolErrorMsg =
 						'Error: Tool execution requested but not supported.';
 					yield { role: 'assistant', content: toolErrorMsg };
@@ -197,21 +197,21 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 						'Received tool calls but no ToolExecutor is configured.'
 					);
 
-					currentTurnHistory.push( {
+					currentTurnHistory.push({
 						role: 'assistant',
 						content: toolErrorMsg,
-					} );
+					});
 					break;
 				}
 
 				const toolResultsPromises = toolCallsFromResponse.map(
-					async ( toolCall: any ) => {
+					async (toolCall: any) => {
 						const toolCallId = toolCall.id;
 						const toolName = toolCall.function?.name;
 						let toolArgs = {};
 						let toolResultMessage: Message | undefined;
 
-						if ( ! toolCallId || ! toolName ) {
+						if (!toolCallId || !toolName) {
 							// eslint-disable-next-line no-console
 							console.error(
 								'Invalid tool call structure from LLM:',
@@ -229,24 +229,24 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 								toolArgs = JSON.parse(
 									toolCall.function?.arguments || '{}'
 								);
-							} catch ( parseError ) {
+							} catch (parseError) {
 								// eslint-disable-next-line no-console
 								console.error(
-									`Error parsing arguments for tool ${ toolName }:`,
+									`Error parsing arguments for tool ${toolName}:`,
 									parseError
 								);
 								toolResultMessage = {
 									role: 'tool',
 									tool_call_id: toolCallId,
 									name: toolName,
-									content: `Error: Could not parse arguments for tool ${ toolName }.`,
+									content: `Error: Could not parse arguments for tool ${toolName}.`,
 								};
 							}
 
-							if ( toolResultMessage === undefined ) {
+							if (toolResultMessage === undefined) {
 								// eslint-disable-next-line no-console
 								console.log(
-									`Executing tool: ${ toolName } with args:`,
+									`Executing tool: ${toolName} with args:`,
 									toolArgs
 								);
 								const { result, error } =
@@ -255,17 +255,17 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 										toolArgs
 									);
 								// eslint-disable-next-line no-console
-								console.log( `Tool ${ toolName } result:`, {
+								console.log(`Tool ${toolName} result:`, {
 									result,
 									error,
-								} );
+								});
 
 								let content: string;
 
-								if ( error ) {
-									content = `Error: ${ error }`;
+								if (error) {
+									content = `Error: ${error}`;
 								} else {
-									content = JSON.stringify( result );
+									content = JSON.stringify(result);
 								}
 
 								toolResultMessage = {
@@ -280,20 +280,19 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 					}
 				);
 
-				const toolResults = await Promise.all( toolResultsPromises );
+				const toolResults = await Promise.all(toolResultsPromises);
 
-				for ( const toolResultMsg of toolResults ) {
-					if ( toolResultMsg ) {
-						currentTurnHistory.push( toolResultMsg );
+				for (const toolResultMsg of toolResults) {
+					if (toolResultMsg) {
+						currentTurnHistory.push(toolResultMsg);
 						yield toolResultMsg;
 					}
 				}
-			} catch ( error ) {
+			} catch (error) {
 				// eslint-disable-next-line no-console
-				console.error( 'Error in agent processing loop:', error );
-				const errorMsgContent = `Sorry, I encountered an error: ${
-					error instanceof Error ? error.message : 'Unknown error'
-				}`;
+				console.error('Error in agent processing loop:', error);
+				const errorMsgContent = `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'
+					}`;
 				yield {
 					role: 'assistant',
 					content: errorMsgContent,
@@ -302,9 +301,9 @@ export const createAgent = ( deps: AgentDependencies ): Agent => {
 			}
 		}
 
-		if ( loopCount >= MAX_LOOPS ) {
+		if (loopCount >= MAX_LOOPS) {
 			// eslint-disable-next-line no-console
-			console.warn( 'Agent reached maximum loop count.' );
+			console.warn('Agent reached maximum loop count.');
 			const loopErrorMsg =
 				'Sorry, I seem to be stuck in a loop processing your request. Please try rephrasing.';
 			yield {
