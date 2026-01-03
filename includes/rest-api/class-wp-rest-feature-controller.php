@@ -5,6 +5,11 @@
  * @package WP_Feature_API
  */
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Controller class for the Feature API REST endpoints.
  *
@@ -109,6 +114,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
 							'validate_callback' => 'rest_validate_request_arg',
+							'required'          => true,
 						),
 					),
 					'schema' => WP_Feature_Category::get_schema(),
@@ -132,12 +138,20 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function get_items( $request ) {
-		$query = new WP_Feature_Query( $request->get_query_params() );
+		$query_params = $request->get_query_params();
+		
+		// Sanitize query parameters
+		$sanitized_params = array();
+		foreach ( $query_params as $key => $value ) {
+			$sanitized_params[ sanitize_key( $key ) ] = sanitize_text_field( $value );
+		}
+		
+		$query = new WP_Feature_Query( $sanitized_params );
 		$features = wp_feature_registry()->get( $query );
 
-		// Handle pagination.
-		$page     = $request['page'] ?? 1;
-		$per_page = $request['per_page'] ?? 10;
+		// Handle pagination with validation
+		$page     = max( 1, absint( $request['page'] ?? 1 ) );
+		$per_page = min( 100, max( 1, absint( $request['per_page'] ?? 10 ) ) );
 		$offset   = ( $page - 1 ) * $per_page;
 
 		$total_features = count( $features );
@@ -155,12 +169,15 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 		$response = rest_ensure_response( $data );
 
 		// Add pagination headers.
-		$response->header( 'X-WP-Total', $total_features );
-		$response->header( 'X-WP-TotalPages', $max_pages );
+		$response->header( 'X-WP-Total', (string) $total_features );
+		$response->header( 'X-WP-TotalPages', (string) $max_pages );
 
 		// Add pagination links.
 		$request_params = $request->get_query_params();
-		$base = add_query_arg( urlencode_deep( $request_params ), rest_url( sprintf( '%s/%s', $this->namespace, $this->rest_base ) ) );
+		$base = add_query_arg( 
+			urlencode_deep( array_map( 'sanitize_text_field', $request_params ) ), 
+			rest_url( sprintf( '%s/%s', $this->namespace, $this->rest_base ) ) 
+		);
 
 		if ( $page > 1 ) {
 			$prev_page = $page - 1;
@@ -186,7 +203,15 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return true|WP_Error True if the request has read access, WP_Error object otherwise.
 	 */
 	public function get_items_permissions_check( $request ) {
-		return current_user_can( 'read' );
+		if ( ! current_user_can( 'read' ) ) {
+			return new WP_Error(
+				'rest_forbidden_context',
+				__( 'Sorry, you are not allowed to view features.', 'wp-feature-api' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+		
+		return true;
 	}
 
 	/**
@@ -207,7 +232,16 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 			$response->add_links( $links );
 		}
 
-		return $response;
+		/**
+		 * Filters the feature data for a REST API response.
+		 *
+		 * @since 0.1.0
+		 *
+		 * @param WP_REST_Response $response The response object.
+		 * @param WP_Feature       $feature  The original feature object.
+		 * @param WP_REST_Request  $request  Request used to generate the response.
+		 */
+		return apply_filters( 'rest_prepare_feature', $response, $feature, $request );
 	}
 
 	/**
@@ -297,24 +331,34 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 		}
 
 		$this->schema = array(
+			'$schema'    => 'http://json-schema.org/draft-04/schema#',
+			'title'      => 'feature',
 			'type'       => 'object',
 			'properties' => array(
 				'id' => array(
 					'description' => __( 'Unique identifier for the feature.', 'wp-feature-api' ),
 					'type'        => 'string',
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'name' => array(
 					'description' => __( 'The name of the feature.', 'wp-feature-api' ),
 					'type'        => 'string',
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'description' => array(
 					'description' => __( 'The description of the feature.', 'wp-feature-api' ),
 					'type'        => 'string',
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'type' => array(
 					'description' => __( 'The type of the feature (resource or tool).', 'wp-feature-api' ),
 					'type'        => 'string',
 					'enum'        => array( 'resource', 'tool' ),
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'categories' => array(
 					'description' => __( 'The categories that the feature belongs to.', 'wp-feature-api' ),
@@ -322,24 +366,34 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 					'items'       => array(
 						'type' => 'string',
 					),
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'location' => array(
 					'description' => __( 'Where the feature is executed (server or client).', 'wp-feature-api' ),
 					'type'        => 'string',
 					'enum'        => array( 'server', 'client' ),
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'input_schema' => array(
 					'description' => __( 'JSON Schema defining the input parameters for the feature.', 'wp-feature-api' ),
 					'type'        => 'object',
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'output_schema' => array(
 					'description' => __( 'JSON Schema defining the output format of the feature.', 'wp-feature-api' ),
 					'type'        => 'object',
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 				'meta' => array(
 					'description' => __( 'Additional metadata associated with the feature.', 'wp-feature-api' ),
 					'type'        => 'object',
 					'properties'  => array(),
+					'context'     => array( 'view', 'edit', 'embed' ),
+					'readonly'    => true,
 				),
 			),
 			'required' => array( 'id', 'name', 'description', 'type' ),
@@ -359,6 +413,8 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 		$schema = $this->get_item_schema();
 
 		return array(
+			'$schema'    => 'http://json-schema.org/draft-04/schema#',
+			'title'      => 'features',
 			'type'       => 'array',
 			'items'      => $schema,
 			'properties' => array(
@@ -386,8 +442,8 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 
 		$fields = $this->default_fields;
 		if ( ! empty( $request['fields'] ) ) {
-			$requested_fields = array_map( 'trim', explode( ',', $request['fields'] ) );
-			$fields = array_unique( $requested_fields );
+			$requested_fields = array_map( 'trim', explode( ',', sanitize_text_field( $request['fields'] ) ) );
+			$fields = array_unique( array_filter( $requested_fields ) );
 		}
 
 		return array_intersect_key( $data, array_flip( $fields ) );
@@ -419,7 +475,6 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 		$alternate_features = $feature->get_alternate_types();
 		if ( $alternate_features ) {
 			foreach ( $alternate_features as $alternate_feature ) {
-				$url = $this->get_feature_url( $alternate_feature );
 				$links['related'][] = array(
 					'href'   => $this->get_feature_url( $alternate_feature ),
 					'method' => 'GET',
@@ -445,7 +500,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 */
 	private function get_base_path( $feature ) {
 		if ( $feature ) {
-			return sprintf( '%s/%s/%s', $this->namespace, $this->rest_base, $feature->get_id() );
+			return sprintf( '%s/%s/%s', $this->namespace, $this->rest_base, sanitize_text_field( $feature->get_id() ) );
 		}
 
 		return sprintf( '%s/%s', $this->namespace, $this->rest_base );
@@ -484,7 +539,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @param WP_Feature $feature The feature object.
 	 */
 	private function register_feature_routes( $feature ) {
-		$resource_base = '/' . $this->rest_base . '/' . $feature->get_id();
+		$resource_base = '/' . $this->rest_base . '/' . sanitize_text_field( $feature->get_id() );
 
 		// Register run endpoint for executing features.
 		register_rest_route(
@@ -510,12 +565,12 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 			$resource_base,
 			array(
 				array(
-					'methods'             => $feature->get_rest_method(),
+					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => function ( $request ) use ( $feature ) {
-						$data     = $this->prepare_item_for_response( $feature, $request );
+						$data = $this->prepare_item_for_response( $feature, $request );
 						return rest_ensure_response( $data );
 					},
-					'permission_callback' => array( $feature, 'get_permission_callback' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
 				),
 				'schema' => array( $this, 'get_item_schema' ),
 			)
@@ -532,6 +587,15 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 */
 	public function get_categories( $request ) {
 		$categories = wp_feature_registry()->get_categories();
+		
+		if ( ! is_array( $categories ) ) {
+			return new WP_Error(
+				'rest_feature_categories_error',
+				__( 'Unable to retrieve feature categories.', 'wp-feature-api' ),
+				array( 'status' => 500 )
+			);
+		}
+		
 		return rest_ensure_response( $categories );
 	}
 
@@ -544,12 +608,26 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function get_category( $request ) {
-		$id = $request['id'];
+		$id = sanitize_text_field( $request['id'] );
+		
+		if ( empty( $id ) ) {
+			return new WP_Error(
+				'rest_missing_callback_param',
+				__( 'Missing category ID.', 'wp-feature-api' ),
+				array( 'status' => 400 )
+			);
+		}
+		
 		$category = wp_feature_registry()->get_category( $id );
 
 		if ( ! $category ) {
-			return new WP_Error( 'rest_feature_category_not_found', __( 'Feature category not found.', 'wp-feature-api' ), array( 'status' => 404 ) );
+			return new WP_Error( 
+				'rest_feature_category_not_found', 
+				__( 'Feature category not found.', 'wp-feature-api' ), 
+				array( 'status' => 404 ) 
+			);
 		}
+		
 		return rest_ensure_response( $category->to_array() );
 	}
 }

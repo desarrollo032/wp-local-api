@@ -12,12 +12,14 @@
 		"ai"
 	],
 	"scripts": {
-		"build": "npm run build --workspaces && npm run build --workspaces --if-present",
+		"clean": "rimraf packages/client/build packages/client/build-types packages/client-features/build packages/demo-agent/build dist",
+		"build": "npm run build --workspaces",
 		"build:client": "npm run build --workspace=packages/client",
 		"build:client-features": "npm run build --workspace=packages/client-features",
 		"build:demo-agent": "npm run build --workspace=packages/demo-agent",
 		"build:all": "./scripts/build.sh",
 		"package": "./scripts/package.sh",
+		"verify": "./scripts/verify-plugins.sh",
 		"release": "./scripts/release.sh",
 		"test": "echo 'No tests configured'",
 		"lint": "echo 'No linter configured'"
@@ -28,7 +30,13 @@
 		"packages/demo-agent"
 	],
 	"devDependencies": {
-		"@types/node": "^20.0.0"
+		"@types/node": "^20.0.0",
+		"@wordpress/scripts": "^31.2.0",
+		"@wordpress/dependency-extraction-webpack-plugin": "^6.10.0",
+		"rimraf": "^6.0.1",
+		"typescript": "^5.6.3",
+		"webpack": "^5.95.0",
+		"webpack-cli": "^5.1.4"
 	}
 }
 

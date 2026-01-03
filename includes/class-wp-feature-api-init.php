@@ -5,6 +5,11 @@
  * @package WordPress\Feature_API
  */
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Handles the initialization of WordPress Feature API components.
  */
@@ -64,12 +69,30 @@ class WP_Feature_API_Init {
 		// Check for the file before requiring it.
 		if ( ! file_exists( $build_path ) ) {
 			if ( WP_DEBUG ) {
-				wp_trigger_error( '', 'Assets file not found, please run the build for the WordPress Feature API plugin.' );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+				trigger_error( 'Assets file not found, please run the build for the WordPress Feature API plugin.', E_USER_WARNING );
 			}
 			return;
 		}
+		
 		$assets = require $build_path;
-		wp_enqueue_script( 'wp-features', $build_url, $assets['dependencies'], $assets['version'], true );
+		
+		// Validate assets structure
+		if ( ! is_array( $assets ) || ! isset( $assets['dependencies'] ) || ! isset( $assets['version'] ) ) {
+			if ( WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+				trigger_error( 'Invalid assets file structure for WordPress Feature API plugin.', E_USER_WARNING );
+			}
+			return;
+		}
+		
+		wp_enqueue_script( 
+			'wp-features', 
+			$build_url, 
+			$assets['dependencies'], 
+			$assets['version'], 
+			array( 'in_footer' => true )
+		);
 
 	}
 
@@ -84,6 +107,12 @@ class WP_Feature_API_Init {
 
 		if ( ! $has_run ) {
 			$has_run = true;
+			
+			/**
+			 * Fires when the WordPress Feature API is initialized.
+			 *
+			 * @since 0.1.0
+			 */
 			do_action( 'wp_feature_api_init' );
 		}
 	}
@@ -131,6 +160,10 @@ class WP_Feature_API_Init {
 	 * @return void
 	 */
 	public static function demo_loaded_notice() {
+		// Only show to users who can manage options
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		?>
 		<div class="notice notice-info is-dismissible">
 			<p>

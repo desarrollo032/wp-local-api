@@ -3,6 +3,8 @@
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+// eslint-disable-next-line import/no-extraneous-dependencies
+const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extraction-webpack-plugin' );
 /**
  * External dependencies
  */
@@ -28,4 +30,22 @@ module.exports = {
 			),
 		},
 	},
+	externals: {
+		'@wordpress/api-fetch': 'wp.apiFetch',
+		'@wordpress/components': 'wp.components',
+		'@wordpress/data': 'wp.data',
+		'@wordpress/element': 'wp.element',
+		'@wordpress/i18n': 'wp.i18n',
+		'@wordpress/icons': 'wp.icons',
+		'@automattic/wp-feature-api': 'wp.features',
+		'react': 'React',
+		'react-dom': 'ReactDOM',
+	},
+	plugins: [
+		...defaultConfig.plugins.filter(
+			( plugin ) =>
+				plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
+		),
+		new DependencyExtractionWebpackPlugin(),
+	],
 };

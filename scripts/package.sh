@@ -171,26 +171,36 @@ generate_sha256() {
 }
 
 ###############################################################################
-# Crear archivo ZIP
+# Crear archivo ZIP y carpeta de revisión
 ###############################################################################
 create_zip() {
     local source_dir="$1"
     local zip_name="$2"
     local zip_path="$DIST_DIR/$zip_name"
+    local plugin_name="${zip_name%.zip}"
+    local review_dir="$DIST_DIR/$plugin_name"
+    local temp_plugin_dir="$DIST_DIR/.temp-zip-$plugin_name"
     
     log_info "Generando $zip_name..."
     
-    # Cambiar al directorio padre para evitar rutas largas
-    local parent_dir
-    parent_dir=$(dirname "$source_dir")
-    local dir_name
-    dir_name=$(basename "$source_dir")
+    # Crear carpeta de revisión
+    rm -rf "$review_dir"
+    cp -r "$source_dir" "$review_dir"
+    log_success "Carpeta de revisión: $plugin_name/"
     
-    cd "$parent_dir"
+    # Crear estructura temporal para ZIP (WordPress espera carpeta con nombre del plugin)
+    rm -rf "$temp_plugin_dir"
+    mkdir -p "$temp_plugin_dir"
+    cp -r "$source_dir" "$temp_plugin_dir/$plugin_name"
+    
+    # Cambiar al directorio temporal para crear ZIP
+    cd "$temp_plugin_dir"
     
     if command -v zip &> /dev/null; then
-        if zip -rq "$zip_path" "$dir_name"; then
+        if zip -rq "$zip_path" "$plugin_name"; then
             log_success "ZIP creado: $zip_name"
+            cd "$ROOT_DIR"
+            rm -rf "$temp_plugin_dir"
             return 0
         fi
     fi
@@ -199,13 +209,17 @@ create_zip() {
     local tgz_name="${zip_name%.zip}.tgz"
     local tgz_path="$DIST_DIR/$tgz_name"
     
-    if tar -czf "$tgz_path" "$dir_name"; then
+    if tar -czf "$tgz_path" "$plugin_name"; then
         mv "$tgz_path" "$zip_path"
         log_success "ZIP creado (tar+gzip): $zip_name"
+        cd "$ROOT_DIR"
+        rm -rf "$temp_plugin_dir"
         return 0
     fi
     
     log_error "Error al crear $zip_name"
+    cd "$ROOT_DIR"
+    rm -rf "$temp_plugin_dir"
     return 1
 }
 
@@ -308,19 +322,15 @@ build_wp_feature_api_demo() {
     rm -rf "$temp_dir"
     mkdir -p "$temp_dir"
     
-    # Validar archivo PHP principal (usamos agent.php como base, renombrado a demo)
-    local source_php="$ROOT_DIR/packages/demo-agent/wp-feature-api-agent.php"
-    local dest_php="$temp_dir/wp-feature-api-demo.php"
-    
-    if ! validate_plugin_header "$source_php" "$pkg_name"; then
+    # Validar archivo PHP principal
+    if ! validate_plugin_header "$ROOT_DIR/packages/demo-agent/wp-feature-api-demo.php" "$pkg_name"; then
         return 1
     fi
     
-    # Copiar y renombrar PHP (cambiando Plugin Name a demo)
-    sed 's/Plugin Name: WP Feature API - AI Agent Proxy/Plugin Name: WP Feature API - Demo Agent/' "$source_php" > "$dest_php"
-    
-    cp "$ROOT_DIR/packages/demo-agent/package.json" "$temp_dir/package.json"
-    cp "$ROOT_DIR/packages/demo-agent/README.md" "$temp_dir/README.md"
+    # Copiar archivos
+    cp "$ROOT_DIR/packages/demo-agent/wp-feature-api-demo.php" "$temp_dir/wp-feature-api-demo.php"
+    cp "$ROOT_DIR/packages/demo-agent/package.json" "$temp_dir/package.json" 2>/dev/null || true
+    cp "$ROOT_DIR/packages/demo-agent/README.md" "$temp_dir/README.md" 2>/dev/null || true
     
     copy_with_exclusions "$ROOT_DIR/packages/demo-agent/includes" "$temp_dir/includes"
     copy_with_exclusions "$ROOT_DIR/packages/demo-agent/build" "$temp_dir/build"
@@ -350,10 +360,27 @@ show_dist_structure() {
     echo ""
     
     if command -v tree &> /dev/null; then
-        tree -h "$DIST_DIR"
+        tree -h "$DIST_DIR" -L 2
     else
-        find "$DIST_DIR" -type f -exec ls -lh {} \; 2>/dev/null | \
-            awk '{print "   " $9 " (" $5 ")"}'
+        echo "📁 $DIST_DIR/"
+        for item in "$DIST_DIR"/*; do
+            if [ -f "$item" ]; then
+                local size
+                size=$(stat -c%s "$item" 2>/dev/null || stat -f%z "$item" 2>/dev/null)
+                local size_kb=$((size / 1024))
+                echo "   📄 $(basename "$item") (${size_kb} KB)"
+            elif [ -d "$item" ]; then
+                echo "   📁 $(basename "$item")/"
+                find "$item" -maxdepth 1 -type f | head -5 | while read -r file; do
+                    echo "      📄 $(basename "$file")"
+                done
+                local file_count
+                file_count=$(find "$item" -type f | wc -l)
+                if [ "$file_count" -gt 5 ]; then
+                    echo "      ... y $((file_count - 5)) archivos más"
+                fi
+            fi
+        done
     fi
 }
 
@@ -371,25 +398,36 @@ show_verification_commands() {
     echo "   unzip -l dist/wp-feature-api-agent.zip"
     echo "   unzip -l dist/wp-feature-api-demo.zip"
     echo ""
-    echo "2. Verificar checksums:"
+    echo "2. Revisar carpetas descomprimidas:"
+    echo "   ls -la dist/wp-feature-api/"
+    echo "   ls -la dist/wp-feature-api-agent/"
+    echo "   ls -la dist/wp-feature-api-demo/"
+    echo ""
+    echo "3. Verificar checksums:"
     echo "   sha256sum -c dist/wp-feature-api.zip.sha256"
     echo "   sha256sum -c dist/wp-feature-api-agent.zip.sha256"
     echo "   sha256sum -c dist/wp-feature-api-demo.zip.sha256"
     echo ""
-    echo "3. Extraer y verificar contenido:"
-    echo "   cd dist && unzip wp-feature-api.zip -d wp-feature-api-test"
-    echo "   cd wp-feature-api-test && ls -la"
+    echo "4. Verificar archivos PHP principales:"
+    echo "   head -20 dist/wp-feature-api/wp-feature-api.php"
+    echo "   head -20 dist/wp-feature-api-agent/wp-feature-api-agent.php"
+    echo "   head -20 dist/wp-feature-api-demo/wp-feature-api-demo.php"
     echo ""
-    echo "4. Verificar checksums con openssl:"
-    echo "   openssl sha256 dist/wp-feature-api.zip"
+    echo "5. Verificar builds:"
+    echo "   ls -la dist/wp-feature-api/build/"
+    echo "   ls -la dist/wp-feature-api-agent/build/"
+    echo "   ls -la dist/wp-feature-api-demo/build/"
     echo ""
-    echo "5. Verificar con WP-CLI (si WordPress está instalado):"
+    echo "6. Verificar con WP-CLI (si WordPress está instalado):"
     echo "   wp plugin install ./dist/wp-feature-api.zip --force"
     echo "   wp plugin activate wp-feature-api"
     echo "   wp plugin list --name=wp-feature-api"
     echo ""
-    echo "6. Verificar que el archivo PHP principal está en la raíz:"
-    echo "   unzip -p dist/wp-feature-api.zip 'wp-feature-api.php' | head -20"
+    echo "7. Desarrollo y testing:"
+    echo "   # Copiar carpeta de revisión a WordPress"
+    echo "   cp -r dist/wp-feature-api /path/to/wordpress/wp-content/plugins/"
+    echo "   # Editar archivos directamente en dist/ para testing"
+    echo "   code dist/wp-feature-api/"
     echo ""
 }
 
@@ -404,7 +442,7 @@ show_summary() {
     echo ""
     echo "📁 Directorio: $DIST_DIR"
     echo ""
-    echo "📦 Archivos generados:"
+    echo "📦 Archivos ZIP generados:"
     echo ""
     
     local total_size=0
@@ -418,6 +456,22 @@ show_summary() {
         fi
     done
     
+    echo ""
+    echo "📁 Carpetas de revisión generadas:"
+    echo ""
+    
+    for dir in "$DIST_DIR"/wp-feature-api*; do
+        if [ -d "$dir" ] && [[ ! "$dir" == *.zip* ]]; then
+            local file_count
+            file_count=$(find "$dir" -type f | wc -l)
+            echo "   📁 $(basename "$dir")/ ($file_count archivos)"
+        fi
+    done
+    
+    echo ""
+    echo "🔐 Checksums SHA256:"
+    echo ""
+    
     for file in "$DIST_DIR"/*.sha256; do
         if [ -f "$file" ]; then
             echo "   🔐 $(basename "$file")"
@@ -425,7 +479,7 @@ show_summary() {
     done
     
     echo ""
-    echo "📊 Total: $((total_size / 1024)) KB"
+    echo "📊 Total ZIPs: $((total_size / 1024)) KB"
     echo ""
 }
 
