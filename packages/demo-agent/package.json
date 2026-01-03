@@ -1,6 +1,6 @@
 {
   "name": "wp-feature-api-demo-agent",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "TypeScript AI agent demo for the WordPress Feature API",
   "main": "build/index.js",
   "types": "build/index.d.ts",
