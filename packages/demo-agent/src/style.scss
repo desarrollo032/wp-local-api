@@ -127,6 +127,43 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 	}
 }
 
+// Floating launcher button (closed state)
+.chat-launcher-button {
+	position: fixed !important;
+	bottom: 24px;
+	right: 24px;
+	z-index: 99999999;
+	border-radius: 999px !important;
+	box-shadow:
+		0 18px 40px rgba(0, 0, 0, 0.6),
+		0 0 0 1px rgba(255, 255, 255, 0.1);
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	min-width: 56px;
+	height: 56px;
+	padding: 0 18px;
+	font-weight: 700;
+	font-size: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	background: $primary-gradient !important;
+	color: $text-primary !important;
+	border: none !important;
+	animation: float 3s ease-in-out infinite;
+
+	&:hover {
+		transform: translateY(-2px) scale(1.04);
+		box-shadow:
+			0 22px 55px rgba(0, 0, 0, 0.8),
+			0 0 30px rgba(102, 126, 234, 0.8);
+	}
+
+	&:active {
+		transform: translateY(0) scale(0.97);
+	}
+}
+
 .chat-container.minimized {
 	height: 72px;
 	overflow: hidden;

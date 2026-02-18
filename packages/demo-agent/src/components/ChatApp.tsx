@@ -58,72 +58,80 @@ export const ChatApp = () => {
 		setSelectedModel,
 		mcpStatus,
 	} = useConversation();
-	const [input, setInput] = useState('');
-	const [isMinimized, setIsMinimized] = useState(false);
-	const messagesEndRef = useRef<HTMLDivElement | null>(null);
+	const [ input, setInput ] = useState( '' );
+	const [ isOpen, setIsOpen ] = useState( false );
+	const messagesEndRef = useRef< HTMLDivElement | null >( null );
 
 	// Scroll to bottom when messages change
-	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-	}, [messages]);
+	useEffect( () => {
+		messagesEndRef.current?.scrollIntoView( { behavior: 'smooth' } );
+	}, [ messages ] );
 
 	const handleSend = () => {
-		if (input.trim() && !isLoading) {
-			sendMessage(input.trim());
-			setInput('');
+		if ( input.trim() && ! isLoading ) {
+			sendMessage( input.trim() );
+			setInput( '' );
 		}
 	};
 
 	const handleKeyDown = (
-		event: React.KeyboardEvent<HTMLTextAreaElement>
+		event: React.KeyboardEvent< HTMLTextAreaElement >
 	) => {
 		// Send on Enter, allow Shift+Enter for newline
-		if (event.key === 'Enter' && !event.shiftKey) {
+		if ( event.key === 'Enter' && ! event.shiftKey ) {
 			event.preventDefault();
 			handleSend();
 		}
 	};
 
-	const toggleMinimize = () => {
-		setIsMinimized(!isMinimized);
-	};
+	// When closed, show only the floating launcher button
+	if ( ! isOpen ) {
+		return (
+			<Button
+				onClick={ () => setIsOpen( true ) }
+				className="chat-launcher-button"
+				variant="primary"
+				label="Abrir chat de IA"
+			>
+				AI
+			</Button>
+		);
+	}
 
 	return (
-		<div className={`chat-container${isMinimized ? ' minimized' : ''}`}>
+		<div className="chat-container">
 			<div className="chat-header">
 				<h2>AI Agent</h2>
-				{models && models.length > 0 && (
-					<div style={{ marginLeft: '12px', minWidth: '80px', flex: 1 }}>
+				{ models && models.length > 0 && (
+					<div style={ { marginLeft: '12px', minWidth: '80px', flex: 1 } }>
 						<SelectControl
-							value={selectedModel ?? ''}
-							onChange={(val) => setSelectedModel(val)}
-							options={models.map((m) => {
+							value={ selectedModel ?? '' }
+							onChange={ ( val ) => setSelectedModel( val ) }
+							options={ models.map( ( m ) => {
 								const isFree = m.raw?.is_free;
 								const provider = m.raw?.provider_name || m.owned_by || '';
 								const freeLabel = isFree ? ' (FREE)' : '';
 								return {
-									label: `${m.id}${freeLabel} (${provider})`,
+									label: `${ m.id }${ freeLabel } (${ provider })`,
 									value: m.id,
 								};
-							})}
+							} ) }
 						/>
 					</div>
-				)}
+				) }
 				<div className="chat-header-actions">
-					<McpStatusIndicator status={mcpStatus} />
+					<McpStatusIndicator status={ mcpStatus } />
 					<Button
-						onClick={clearConversation}
+						onClick={ clearConversation }
 						label="Clear Conversation"
-						icon={<TrashIcon />}
+						icon={ <TrashIcon /> }
 						isSmall
 						variant="tertiary"
 					/>
 					<Button
-						onClick={toggleMinimize}
-						label={isMinimized ? 'Maximize' : 'Minimize'}
-						icon={
-							isMinimized ? <ChevronUpIcon /> : <ChevronDownIcon />
-						}
+						onClick={ () => setIsOpen( false ) }
+						label="Close"
+						icon={ <ChevronDownIcon /> }
 						isSmall
 						variant="tertiary"
 					/>
@@ -131,37 +139,39 @@ export const ChatApp = () => {
 			</div>
 			<div className="chat-body">
 				<div className="chat-messages">
-					{messages.map((msg, index) => {
-						const key = `msg-${index}`;
-						if (msg.role === 'user') {
+					{ messages.map( ( msg, index ) => {
+						const key = `msg-${ index }`;
+						if ( msg.role === 'user' ) {
 							return (
 								<UserMessage
-									key={key}
-									text={msg.content ?? ''}
+									key={ key }
+									text={ msg.content ?? '' }
 								/>
 							);
 						}
-						return <AssistantMessage key={key} message={msg} />;
-					})}
-					{isLoading && <PendingAssistantMessage />}
+						return (
+							<AssistantMessage key={ key } message={ msg } />
+						);
+					} ) }
+					{ isLoading && <PendingAssistantMessage /> }
 					<div ref={messagesEndRef} />
 				</div>
 				<div className="chat-input">
 					<TextareaControl
-						value={input}
-						onChange={setInput}
+						value={ input }
+						onChange={ setInput }
 						placeholder="Type your message..."
-						onKeyDown={handleKeyDown}
-						disabled={isLoading}
+						onKeyDown={ handleKeyDown }
+						disabled={ isLoading }
 						className="chat-input-textarea"
-						rows={1}
+						rows={ 1 }
 					/>
 					<Button
-						onClick={handleSend}
-						disabled={isLoading || !input.trim()}
+						onClick={ handleSend }
+						disabled={ isLoading || ! input.trim() }
 						className="chat-input-submit"
 						label="Send Message"
-						icon={<ArrowRightIcon />}
+						icon={ <ArrowRightIcon /> }
 						variant="primary"
 					/>
 				</div>

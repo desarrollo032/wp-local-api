@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$wp_feature_api_version = '0.1.11';
+$wp_feature_api_version = '0.1.14';
 $wp_feature_api_plugin_dir = plugin_dir_path( __FILE__ );
 $wp_feature_api_plugin_url = plugin_dir_url( __FILE__ );
 

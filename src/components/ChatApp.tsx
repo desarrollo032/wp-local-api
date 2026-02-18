@@ -8,7 +8,7 @@ import {
 	Icon,
 	SelectControl,
 } from '@wordpress/components';
-import { arrowRight, trash, chevronDown, chevronUp } from '@wordpress/icons';
+import { arrowRight, trash, chevronDown } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -20,6 +20,8 @@ import {
 	PendingAssistantMessage,
 } from './ChatMessage';
 import { McpStatusIndicator } from './McpStatusIndicator';
+
+const CHAT_OPEN_STATE_KEY = 'wp-feature-api-agent-chat-open';
 
 export const ChatApp = () => {
 	const {
@@ -33,13 +35,57 @@ export const ChatApp = () => {
 		mcpStatus,
 	} = useConversation();
 	const [ input, setInput ] = useState( '' );
-	const [ isMinimized, setIsMinimized ] = useState( false );
+	const [ isOpen, setIsOpen ] = useState( () => {
+		if ( typeof window === 'undefined' ) {
+			return false;
+		}
+
+		try {
+			const stored = window.localStorage.getItem( CHAT_OPEN_STATE_KEY );
+			return stored === '1';
+		} catch {
+			return false;
+		}
+	} );
 	const messagesEndRef = useRef< HTMLDivElement | null >( null );
 
 	// Scroll to bottom when messages change
 	useEffect( () => {
 		messagesEndRef.current?.scrollIntoView( { behavior: 'smooth' } );
 	}, [ messages ] );
+
+	// Persist open/closed state in localStorage
+	useEffect( () => {
+		if ( typeof window === 'undefined' ) {
+			return;
+		}
+
+		try {
+			window.localStorage.setItem(
+				CHAT_OPEN_STATE_KEY,
+				isOpen ? '1' : '0'
+			);
+		} catch {
+			// Ignore storage errors.
+		}
+	}, [ isOpen ] );
+
+	// Global keyboard shortcut: Ctrl+Shift+K to toggle chat
+	useEffect( () => {
+		if ( typeof window === 'undefined' ) {
+			return;
+		}
+
+		const handler = ( event: KeyboardEvent ) => {
+			if ( event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'k' ) {
+				event.preventDefault();
+				setIsOpen( ( prev ) => ! prev );
+			}
+		};
+
+		window.addEventListener( 'keydown', handler );
+		return () => window.removeEventListener( 'keydown', handler );
+	}, [] );
 
 	const handleSend = () => {
 		if ( input.trim() && ! isLoading ) {
@@ -58,12 +104,22 @@ export const ChatApp = () => {
 		}
 	};
 
-	const toggleMinimize = () => {
-		setIsMinimized( ! isMinimized );
-	};
+	// When closed, show only the floating launcher button
+	if ( ! isOpen ) {
+		return (
+			<Button
+				onClick={ () => setIsOpen( true ) }
+				className="chat-launcher-button"
+				variant="primary"
+				label="Abrir chat de IA"
+			>
+				AI
+			</Button>
+		);
+	}
 
 	return (
-		<div className={ `chat-container${ isMinimized ? ' minimized' : '' }` }>
+		<div className="chat-container">
 			<div className="chat-header">
 				<h2>AI Agent</h2>
 				{ models && models.length > 0 && (
@@ -88,13 +144,9 @@ export const ChatApp = () => {
 						variant="tertiary"
 					/>
 					<Button
-						onClick={ toggleMinimize }
-						label={ isMinimized ? 'Maximize' : 'Minimize' }
-						icon={
-							<Icon
-								icon={ isMinimized ? chevronUp : chevronDown }
-							/>
-						}
+						onClick={ () => setIsOpen( false ) }
+						label="Close"
+						icon={ <Icon icon={ chevronDown } /> }
 						isSmall
 						variant="tertiary"
 					/>

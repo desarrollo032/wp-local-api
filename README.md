@@ -2,8 +2,7 @@
 # WordPress Feature API
 
 > Sistema para exponer funcionalidades de WordPress de manera estandarizada para uso en LLMs y sistemas de IA.
-
-[![Versi√≥n](https://img.shields.io/badge/Version-0.1.11-blue)](https://github.com/Automattic/wordpress-feature-api)
+[![Versi√≥n](https://img.shields.io/badge/Version-0.1.14-blue)](https://github.com/Automattic/wordpress-feature-api)
 [![GPLv2 License](https://img.shields.io/badge/License-GPL%20v2-green)](LICENSE)
 [![WordPress](https://img.shields.io/badge/WordPress-6.0+-blueviolet)](https://wordpress.org/)
 
@@ -111,12 +110,12 @@ ls dist/*.zip
 
 ---
 
-## üí¨ Usar el Chat
-
-1. **Acceder:** El chat aparece en la esquina inferior derecha del admin de WordPress
-2. **Seleccionar modelo:** Elegir un modelo gratuito (marcado con "FREE")
-3. **Chatear:** Hacer preguntas sobre WordPress, contenido, configuraci√≥n, etc.
-4. **Funcionalidades:** El AI puede ejecutar acciones si WordPress MCP est√° instalado
+## ?? Usar el Chat
+1. **Acceder:** Ver·s un botÛn flotante en la esquina inferior derecha del admin de WordPress (por defecto con el texto "AI").
+2. **Abrir/cerrar:** Haz clic en el botÛn flotante para abrir el panel de chat. Puedes cerrarlo desde el icono de la cabecera o pulsando `Ctrl + Shift + K`.
+3. **Seleccionar modelo:** Elige el modelo que quieras usar en el selector (si hay varios modelos disponibles).
+4. **Chatear:** Haz preguntas sobre WordPress, contenido, configuraciÛn, etc.
+5. **Funcionalidades:** La IA puede ejecutar acciones autom·ticas si el plugin **wordpress-mcp** est· instalado y activo; de lo contrario, te dar· instrucciones paso a paso.
 
 ### Modelos Gratuitos Soportados
 
@@ -286,3 +285,4 @@ Este proyecto est√° licenciado bajo GPL v2 o posterior. Ver [LICENSE](LICENSE) p
 ---
 
 ‚≠ê *Si este proyecto te es √∫til, ¬°considera darle una estrella en GitHub!*
+5. **Funcionalidades:** La IA puede ejecutar acciones autom·ticas si el plugin **wordpress-mcp** est· instalado y activo; de lo contrario, te dar· instrucciones paso a paso.
