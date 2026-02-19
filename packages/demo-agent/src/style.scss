@@ -729,3 +729,297 @@ $shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
 		transition-duration: 0.01ms !important;
 	}
 }
+
+// ============================================
+// Professional Chat Theme Overrides
+// ============================================
+
+.chat-container {
+	background: #0b1120;
+	border-radius: 18px;
+	box-shadow: 0 18px 40px rgba(15, 23, 42, 0.75);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		system-ui, sans-serif;
+	animation: none;
+}
+
+.chat-container::before {
+	display: none;
+}
+
+.chat-launcher-button {
+	background: #2563eb !important;
+	color: #ffffff !important;
+	border-radius: 999px !important;
+	box-shadow: 0 12px 25px rgba(15, 23, 42, 0.55);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: none;
+	animation: none;
+}
+
+.chat-header {
+	background: #020617;
+	border-radius: 18px 18px 0 0;
+	padding: 12px 16px;
+}
+
+.chat-header::before {
+	display: none;
+}
+
+.chat-header h2 {
+	font-size: 16px;
+	font-weight: 600;
+	letter-spacing: 0;
+}
+
+.chat-header h2::before {
+	content: none;
+}
+
+.chat-header button {
+	background: transparent !important;
+	border: none;
+	box-shadow: none;
+	opacity: 0.7;
+}
+
+.chat-header button:hover {
+	opacity: 1;
+	background: rgba(148, 163, 184, 0.25) !important;
+	transform: none;
+}
+
+.chat-body {
+	background: #020617;
+	border-radius: 0 0 18px 18px;
+	padding: 16px 18px;
+}
+
+.demo-chat-message {
+	background: #020617;
+	border-radius: 12px;
+	box-shadow: none;
+	border: 1px solid rgba(30, 64, 175, 0.35);
+	font-size: 13px;
+}
+
+.demo-chat-message-user {
+	background: #1d4ed8;
+	color: #f9fafb;
+	border-color: transparent;
+}
+
+.demo-chat-message-assistant,
+.demo-chat-message-tool {
+	background: #020617;
+	color: #e5e7eb;
+	border-color: rgba(31, 41, 55, 1);
+}
+
+.chat-input {
+	background: #020617;
+	border-radius: 14px;
+	border-color: #1f2937;
+	box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
+}
+
+.chat-input:focus-within {
+	border-color: #2563eb;
+	box-shadow:
+		0 0 0 1px rgba(37, 99, 235, 0.9),
+		0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+.chat-input-textarea {
+	color: #e5e7eb;
+}
+
+.chat-input-textarea::placeholder {
+	color: #6b7280;
+}
+
+.chat-input-submit {
+	background: #2563eb;
+	border-radius: 999px;
+	min-width: 38px;
+	width: 38px;
+	height: 38px;
+	box-shadow: 0 8px 20px rgba(37, 99, 235, 0.5);
+}
+
+.chat-input-submit:hover:not(:disabled) {
+	transform: translateY(-1px);
+	box-shadow: 0 10px 24px rgba(37, 99, 235, 0.7);
+}
+
+.chat-input-submit:disabled {
+	background: #1f2937;
+	box-shadow: none;
+}
+
+.mcp-status-indicator-wrapper {
+	background: transparent;
+	border-radius: 999px;
+	border: 1px solid rgba(51, 65, 85, 1);
+	box-shadow: none;
+}
+
+.mcp-status-indicator-wrapper.connected {
+	background: rgba(22, 163, 74, 0.18);
+	border-color: rgba(34, 197, 94, 0.8);
+	box-shadow: none;
+	animation: none;
+}
+
+.mcp-status-indicator-wrapper.inactive {
+	background: rgba(15, 23, 42, 0.9);
+	border-color: rgba(31, 41, 55, 1);
+}
+
+.mcp-tools-count {
+	background: #16a34a;
+	border: 2px solid #020617;
+	box-shadow: none;
+}
+
+.chat-container.minimized {
+	border-radius: 999px;
+}
+
+// ============================================
+// Admin Settings Page - Modern Design
+// ============================================
+
+body.settings_page_wp-ai-api-proxy-settings {
+	background: radial-gradient(circle at top left, #eef2ff 0, #f8fafc 42%, #f4f4f5 100%);
+
+	.wrap {
+		max-width: 960px;
+		margin-top: 32px;
+		margin-bottom: 40px;
+	}
+
+	.wrap > h1 {
+		font-size: 28px;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		font-weight: 700;
+		color: #111827;
+		margin-bottom: 8px;
+	}
+
+	.wrap h2 {
+		margin-top: 0;
+		margin-bottom: 12px;
+		font-size: 13px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: #4f46e5;
+	}
+
+	.wrap p.description,
+	.wrap .form-table p.description {
+		font-size: 12px;
+		color: #6b7280;
+		margin-top: 4px;
+	}
+
+	form {
+		margin-top: 20px;
+	}
+
+	.form-table {
+		background: #ffffff;
+		border-radius: 20px;
+		padding: 20px 24px;
+		box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+		border-collapse: separate;
+		border-spacing: 0;
+		width: 100%;
+	}
+
+	.form-table tr {
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	.form-table tr:last-child {
+		border-bottom: none;
+	}
+
+	.form-table th {
+		padding: 18px 24px 12px 2px;
+		font-size: 13px;
+		font-weight: 600;
+		color: #111827;
+		vertical-align: top;
+		width: 260px;
+	}
+
+	.form-table td {
+		padding: 12px 0 18px 0;
+	}
+
+	.form-table input.regular-text,
+	.form-table input[type="text"],
+	.form-table input[type="password"],
+	.form-table input[type="url"],
+	.form-table select {
+		width: 100%;
+		max-width: 420px;
+		border-radius: 12px;
+		border-color: #d1d5db;
+		padding: 9px 12px;
+		font-size: 13px;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+		transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+
+		&:focus {
+			outline: none;
+			border-color: var(--wp-admin-theme-color);
+			box-shadow:
+				0 0 0 1px rgba(129, 140, 248, 0.3),
+				0 8px 18px rgba(15, 23, 42, 0.06);
+			transform: translateY(-1px);
+		}
+	}
+
+	.form-table p.description {
+		margin-top: 6px;
+	}
+
+	.submit {
+		margin-top: 24px;
+	}
+
+	.submit .button-primary {
+		border-radius: 999px;
+		padding-inline: 24px;
+		height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 600;
+		font-size: 13px;
+		background-image: linear-gradient(135deg, #6366f1, #8b5cf6);
+		border: none;
+		box-shadow: 0 16px 30px rgba(79, 70, 229, 0.45);
+		transition:
+			transform 0.08s ease,
+			box-shadow 0.15s ease,
+			filter 0.15s ease;
+	}
+
+	.submit .button-primary:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.03);
+		box-shadow: 0 20px 40px rgba(79, 70, 229, 0.55);
+	}
+
+	.submit .button-primary:active {
+		transform: translateY(0);
+		box-shadow: 0 10px 18px rgba(79, 70, 229, 0.4);
+	}
+}
