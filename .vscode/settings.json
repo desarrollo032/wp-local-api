@@ -1,2 +1,5 @@
 {
+    "python.analysis.extraPaths": [
+        "/home/codespace/.vscode-remote/extensions/continue.continue-0.1.3"
+    ]
 }

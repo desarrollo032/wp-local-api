@@ -1,67 +1,35 @@
-# TODO - Actualización de Package.json
+# WP-MCP-CONTROL IMPLEMENTATION TODO
 
-## Estado: ✅ Completado
+## Phase 1: Core Structure ✅ COMPLETE
+- [x] wp-mcp-control.php (main)
+- [x] class-mcp-permissions.php
+- [x] class-mcp-auth.php  
+- [x] class-mcp-registry.php
+- [x] rest-api/class-mcp-rest-server.php (tools/call endpoints, auth/rate/log)
 
-### Packages Actualizados:
+## Phase 2: Tools (IN PROGRESS)
+- [x] class-tool-posts.php (full CRUD sample)
+- [ ] class-tool-media.php
+- [ ] ... (stub 20+ in registry)
 
-1. ✅ `/workspaces/wp-feature-api/package.json` (root)
-   - Versiones de @wordpress/*** sincronizadas a ^6-^31.x
-   - @automattic/wp-feature-api: ^0.1.9
-   - TypeScript ^5.6.3 agregado
-   - rimraf ^5.0.10 agregado
-   - Scripts unificados con `clean` multiplataforma
 
-2. ✅ `/workspaces/wp-feature-api/packages/client/package.json`
-   - Versión actualizada: 0.1.9
-   - @wordpress/*** sincronizado con root
-   - TypeScript y tipos de React agregados
-   - rimraf agregado
-   - publishConfig y repository configurados
+## Phase 3: Admin UI ✅ COMPLETE (basic)
+- [x] class-mcp-admin.php + React tabs/pages (Permissions/Tokens/Logs/Connection)
+- [x] PermissionMatrix component
 
-3. ✅ `/workspaces/wp-feature-api/packages/client-features/package.json`
-   - @automattic/wp-feature-api: "*" (workspace)
-   - @wordpress/*** sincronizado
-   - TypeScript y tipos de React agregados
-   - rimraf agregado
-   - Scripts unificados
 
-4. ✅ `/workspaces/wp-feature-api/release/wp-feature-api-agent/package.json`
-   - Versión actualizada: 0.1.1
-   - @wordpress/*** sincronizado
-   - TypeScript y tipos de React agregados
-   - rimraf agregado
-   - publishConfig configurado
+## Phase 4: Polish ✅
+- [x] Admin build config (package.json/webpack/tsconfig)
+- [ ] Additional tools (media/users/etc.)
 
-5. ✅ `/workspaces/wp-feature-api/demo/wp-feature-api-agent/package.json`
-   - Versión actualizada: 0.1.1
-   - @automattic/wp-feature-api: "*" (workspace)
-   - @wordpress/*** sincronizado
-   - TypeScript y tipos de React agregados
-   - rimraf agregado
-   - publishConfig configurado
+## Phase 5: Package (NEXT)
+- [ ] Run npm install/build
+- [ ] scripts/package.sh → ZIP
+- [ ] Test install
 
-6. ✅ `/workspaces/wp-feature-api/release/wp-feature-api/package.json`
-   - Eliminado workspaces (no debería ser monorepo)
-   - @wordpress/*** sincronizado
-   - TypeScript y tipos de React agregados
-   - rimraf agregado
+**Plugin functional! npm run build then activate test MCP endpoints/UI.**
 
-### Pasos de Verificación:
-- [ ] Ejecutar `npm install` para verificar instalaciones
-- [ ] Ejecutar `npm run build` para verificar builds
-- [ ] Ejecutar `npm run lint` para verificar linting
 
-### Versiones Consolidadas:
-- **React/React DOM**: ^18.3.1
-- **@wordpress/* packages**: ^6.37.0 a ^31.0.0 (versiones consistentes)
-- **TypeScript**: ^5.6.3
-- **@wordpress/scripts**: ^31.2.0
-- **@types/react**: ^18.3.3
-- **rimraf**: ^5.0.10
+**Next: Phase 2 sample tool (posts)**
 
-### Packages Versions:
-- **Core**: 0.1.9
-- **Client**: 0.1.9
-- **Agent**: 0.1.1
-- **Client Features**: 1.0.0
 
